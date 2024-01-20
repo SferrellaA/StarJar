@@ -126,7 +126,6 @@ async def flash_loop(display):
         
 # set up wifi
 async def main():
-    #wifi = NetworkManager("ATTBRyYu7C", "t84dyhw?4m9t") #, display.fire)
     wifi = NetworkManager("fake network", "ddd")
     display.moorse("I", (255, 255, 255))
 
