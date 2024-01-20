@@ -7,12 +7,10 @@ from time import sleep as block_sleep
 
 display = LED_Strip(50)
 
-stage = 1
-
 class NetworkManager:
-    _ifname = ("Client", "Access Point")
+    #_ifname = ("Client", "Access Point")
 
-    def __init__(self, ssid, psk): #, error_effect):
+    def __init__(self, ssid, psk):
         rp2.country("US")
         self._ap_if = network.WLAN(network.AP_IF)
         self._sta_if = network.WLAN(network.STA_IF)
@@ -20,14 +18,10 @@ class NetworkManager:
         self._client_timeout = 10
         self._ssid = ssid
         self._psk = psk
-        #self._error_effect = error_effect
-        #self._access_point_timeout = access_point_timeout
         self._error_handler = None
         self.UID = ("{:02X}" * 8).format(*machine.unique_id())
 
-    def isconnected(self):
-        return self._sta_if.isconnected() or self._ap_if.isconnected()
-
+    '''
     def config(self, var):
         if self._sta_if.active():
             return self._sta_if.config(var)
@@ -42,6 +36,7 @@ class NetworkManager:
         if self._ap_if.isconnected():
             return self._ifname[1]
         return None
+    '''
 
     def ifaddress(self):
         if self._sta_if.isconnected():
@@ -55,67 +50,18 @@ class NetworkManager:
             self._sta_if.disconnect()
         if self._ap_if.isconnected():
             self._ap_if.disconnect()
-
-    async def wait(self, mode):
-        while not self.isconnected():
-            self._handle_status(mode, None)
-            await uasyncio.sleep_ms(1000)
-
-    def _handle_status(self, mode, status):
-        # reports wifi connection status
-        print(self._ifname[mode], status, self.ifaddress())
-        print('Connecting to ' + self._ssid)
-        
-        # flash while connecting
-        #display.flash(255, 255, 255) # This needs to be out of the network functions
-        #block_sleep(0.02)
-        #display.flash(0,0,0)
-        
-        if status is not None:
-            if status:
-                print('Wifi connection successful!')
-            else:
-                print('Wifi connection failed!')
-                # if no wifi connection, you get display.spooky rainbows. Bwahahaha!
-                #display.spooky_rainbows(5)
-                #self._error_effect(5)
-
-    '''
-    def _handle_error(self, mode, msg):
-        if callable(self._error_handler):
-            if self._error_handler(self._ifname[mode], msg):
-                return
-        raise RuntimeError(msg)
-    '''
-
+    
     async def connect(self):
-        print("starting to connect to wifi")
-        
-        # Already connected to wifi
-        #if self._sta_if.isconnected():
-        #    self._handle_status(network.STA_IF, True)
-        #    return
-        
-        # Prep to connect to wifi
-        self._ap_if.disconnect()
-        self._ap_if.active(False)
         self._sta_if.active(True)
         self._sta_if.connect(self._ssid, self._psk)
-        
-        # Try to connect to wifi
-        try:
-            await uasyncio.wait_for(self.wait(network.STA_IF), self._client_timeout)
-            #self._handle_status(network.STA_IF, True)
-            print("connected to wifi!")
-        
-        # Connecting to wifi didn't work
-        except uasyncio.TimeoutError:
-            print("couldn't connect to wifi")
-            self._sta_if.active(False)
-            #self._handle_status(network.STA_IF, False)
-            #self._handle_error(network.STA_IF, "WIFI Client Failed")
-            global stage
-            stage += 1
+        for attempt in range(1,5+1):
+            print(f"Connection attempt {attempt}/5")
+            if self._sta_if.isconnected():
+                print(f"Connected to {self._ssid}")
+                break
+            await uasyncio.sleep(attempt) # crude backoff
+        else:
+            print(f"Could not connect to {self._ssid}")
 
 async def flash_loop(display):
     while True:
@@ -131,9 +77,7 @@ async def main():
 
     task = uasyncio.create_task(flash_loop(display))
     await uasyncio.sleep(0)
-    print(stage)
     await wifi.connect()
-    print(stage)
     task.cancel()
     display.flash(0,0,0)
 uasyncio.run(main())
