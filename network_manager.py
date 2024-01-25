@@ -54,7 +54,7 @@ class NetworkManager:
     async def connect(self):
         self._sta_if.active(True)
         self._sta_if.connect(self._ssid, self._psk)
-        for attempt in range(1,5+1):
+        for attempt in range(1,6):
             print(f"Connection attempt {attempt}/5")
             if self._sta_if.isconnected():
                 print(f"Connected to {self._ssid}")

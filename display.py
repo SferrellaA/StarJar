@@ -3,6 +3,10 @@ from random import random, uniform
 import uasyncio
 from plasma import plasma_stick, WS2812, COLOR_ORDER_RGB
 
+# Colors
+cos_blue = (1, 22, 137)
+cos_yellow = (246, 209, 6)
+
 class LED_Strip:
     def __init__(self, NUM_LEDS):
         self.NUM_LEDS = NUM_LEDS
@@ -13,22 +17,21 @@ class LED_Strip:
         for led in range(self.NUM_LEDS): 
             self.strip.set_rgb(led, r, g, b)
 
+    '''
     async def timed_effect(self, time, effect, *args):
         try:
             await uasyncio.wait_for(effect(*args), time)
         except uasyncio.TimeoutError:
             pass
         self.flash(0,0,0)
-
-    def dazzle_effect(self,
-           intensity, # How much dazzle? [bigger number = more dazzle]
-           # Change your colours here! RGB colour picker: https://g.co/kgs/k2Egjk
-           background,
-           color,
-           # how quickly current colour changes to target colour [1 - 255]
-           fadeIn,
-           fadeOut):
-        # Create a list of [r, g, b] values that will hold current LED colours, for display
+    '''
+    async def sparkle(self):
+        intensity = 0.005 
+        background = [50, 50, 0]
+        color = [255, 255, 0]
+        fadeIn = 2
+        fadeOut = 2
+                # Create a list of [r, g, b] values that will hold current LED colours, for display
         current_leds = [[0] * 3 for i in range(self.NUM_LEDS)]
         # Create a list of [r, g, b] values that will hold target LED colours, to move towards
         target_leds = [[0] * 3 for i in range(self.NUM_LEDS)]
@@ -52,67 +55,45 @@ class LED_Strip:
                 # display current colours to strip
                 self.strip.set_rgb(i, current_leds[i][0], current_leds[i][1], current_leds[i][2])
             await uasyncio.sleep(0.0001)
-
-    def sparkle(self, time):
-        intensity = 0.005 
-        background = [50, 50, 0]
-        color = [255, 255, 0]
-        fadeIn = 2
-        fadeOut = 2
-        uasyncio.run(self.timed_effect(time, self.dazzle_effect, intensity, background, color, fadeIn, fadeOut))
-
-    def snow(self, time):
-        intensity = 0.0002
-        background = [30, 50, 50]  # dim blue
-        color = [240, 255, 255]  # bluish white
-        fadeIn = 255  # abrupt change for a snowflake
-        fadeOut = 1
-        uasyncio.run(self.timed_effect(time, self.dazzle_effect, intensity, background, color, fadeIn, fadeOut))
     
-    def fire(self, time):
-        def fire_effect():
-            while True:
-                # Random red/orange hue, full saturation, random brightness
-                for i in range(self.NUM_LEDS):
-                    self.strip.set_hsv(i, uniform(0.0, 50 / 360), 1.0, random())
-                await uasyncio.sleep(0.1)
-        uasyncio.run(self.timed_effect(time, fire_effect))
+    async def fire(self):
+        while True:
+            # Random red/orange hue, full saturation, random brightness
+            for i in range(self.NUM_LEDS):
+                self.strip.set_hsv(i, uniform(0.0, 50 / 360), 1.0, random())
+            await uasyncio.sleep(0.1)
     
-    def rainbow(self, time):
-        def rainbow_effect():
-            SPEED = 20 # The SPEED that the LEDs cycle at (1 - 255)
-            UPDATES = 60 # How many times the LEDs will be updated per second
-            offset = 0.0
-            while True:
-                SPEED = min(255, max(1, SPEED))
-                offset += float(SPEED) / 2000.0
-                for i in range(self.NUM_LEDS):
-                    hue = float(i) / self.NUM_LEDS
-                    self.strip.set_hsv(i, hue + offset, 1.0, 1.0)
-                await uasyncio.sleep(1.0 / UPDATES)
-        uasyncio.run(self.timed_effect(time, rainbow_effect))
+    async def rainbow(self):
+        SPEED = 20 # The SPEED that the LEDs cycle at (1 - 255)
+        UPDATES = 60 # How many times the LEDs will be updated per second
+        offset = 0.0
+        while True:
+            SPEED = min(255, max(1, SPEED))
+            offset += float(SPEED) / 2000.0
+            for i in range(self.NUM_LEDS):
+                hue = float(i) / self.NUM_LEDS
+                self.strip.set_hsv(i, hue + offset, 1.0, 1.0)
+            await uasyncio.sleep(1.0 / UPDATES)
 
-    def spooky_rainbows(self, time):
-        def spooky_rainbow_effect():
-            HUE_START = 30  # orange
-            HUE_END = 140  # green
-            SPEED = 0.3  # bigger = faster (harder, stronger)
-            distance = 0.0
-            direction = SPEED
-            while True:
-                for i in range(self.NUM_LEDS):
-                    # generate a triangle wave that moves up and down the LEDs
-                    j = max(0, 1 - abs(distance - i) / (self.NUM_LEDS / 3))
-                    hue = HUE_START + j * (HUE_END - HUE_START)
-                    self.strip.set_hsv(i, hue / 360, 1.0, 0.8)
-                # reverse direction at the end of colour segment to avoid an abrupt change
-                distance += direction
-                if distance > self.NUM_LEDS:
-                    direction = - SPEED
-                if distance < 0:
-                    direction = SPEED
+    async def spooky_rainbows(self):
+        HUE_START = 30  # orange
+        HUE_END = 140  # green
+        SPEED = 0.3  # bigger = faster (harder, stronger)
+        distance = 0.0
+        direction = SPEED
+        while True:
+            for i in range(self.NUM_LEDS):
+                # generate a triangle wave that moves up and down the LEDs
+                j = max(0, 1 - abs(distance - i) / (self.NUM_LEDS / 3))
+                hue = HUE_START + j * (HUE_END - HUE_START)
+                self.strip.set_hsv(i, hue / 360, 1.0, 0.8)
+            # reverse direction at the end of colour segment to avoid an abrupt change
+            distance += direction
+            if distance > self.NUM_LEDS:
+                direction = - SPEED
+            if distance < 0:
+                direction = SPEED
             await uasyncio.sleep(0.01)
-        uasyncio.run(self.timed_effect(time, spooky_rainbow_effect))
 
     MORSE_CODE_DICT = { 'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..',
         'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---',
@@ -142,6 +123,4 @@ class LED_Strip:
                 block_sleep(1.5)
             print()
 
-# Colors
-cos_blue = (1, 22, 137)
-cos_yellow = (246, 209, 6)
+
