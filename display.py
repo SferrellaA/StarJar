@@ -1,5 +1,5 @@
 from time import sleep as block_sleep
-from random import random, uniform
+from random import random, uniform, randint
 import uasyncio
 from plasma import plasma_stick, WS2812, COLOR_ORDER_RGB
 
@@ -14,6 +14,17 @@ class LED_Strip:
         self.strip.start()
 
     def flash(self, r, g, b):
+        if r == -1 and g == -1 and b == -1:
+            for led in range(self.NUM_LEDS):
+                self.strip.set_rgb(led, randint(1,255), randint(1,255), randint(1,255))
+            return
+        else:
+            if r == -1:
+                r = randint(1,255)
+            if g == -1:
+                g = randint(1,255)
+            if b == -1:
+                b = randint(1,255)
         for led in range(self.NUM_LEDS): 
             self.strip.set_rgb(led, r, g, b)
 
@@ -113,6 +124,8 @@ class LED_Strip:
         '(':'-.--.', ')':'-.--.-', '!':'-.-.--'}
 
     def moorse(self, phrase, color):
+        if color == ():
+            color = (-1,-1,-1)
         block_sleep(1.5)
         for word in phrase.split():
             for letter in word.upper():

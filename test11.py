@@ -1,7 +1,6 @@
 from network_manager import NetworkManager
 import uasyncio
 from display import *
-from random import randint
 #from time import sleep
 
 display = LED_Strip(50)
@@ -19,7 +18,7 @@ async def part1():
     # The regular loop
     while True:
         display.flash(0,0,0)
-        display.moorse("I", (randint(1,255),randint(1,255),randint(1,255)))
+        display.moorse("ssid name", (-1,-1,-1))
         task = uasyncio.create_task(display.flash_loop())
         connection = await wifi.connect()
         task.cancel()
