@@ -25,6 +25,13 @@ class LED_Strip:
             pass
         self.flash(0,0,0)
     '''
+    async def flash_loop(self):
+        while True:
+            self.flash(*cos_yellow)
+            await uasyncio.sleep(1)
+            self.flash(*cos_blue)
+            await uasyncio.sleep(1)
+
     async def sparkle(self):
         intensity = 0.005 
         background = [50, 50, 0]
@@ -106,6 +113,7 @@ class LED_Strip:
         '(':'-.--.', ')':'-.--.-', '!':'-.-.--'}
 
     def moorse(self, phrase, color):
+        block_sleep(1.5)
         for word in phrase.split():
             for letter in word.upper():
                 print(letter, end=" ")

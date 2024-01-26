@@ -5,14 +5,14 @@ import uasyncio
 from display import *
 from time import sleep as block_sleep
 
-display = LED_Strip(50)
+#display = LED_Strip(50)
 
 class NetworkManager:
     #_ifname = ("Client", "Access Point")
 
     def __init__(self, ssid, psk):
         rp2.country("US")
-        self._ap_if = network.WLAN(network.AP_IF)
+        #self._ap_if = network.WLAN(network.AP_IF)
         self._sta_if = network.WLAN(network.STA_IF)
         self._mode = network.STA_IF
         self._client_timeout = 10
@@ -58,11 +58,12 @@ class NetworkManager:
             print(f"Connection attempt {attempt}/5")
             if self._sta_if.isconnected():
                 print(f"Connected to {self._ssid}")
-                break
+                return True
             await uasyncio.sleep(attempt) # crude backoff
         else:
             print(f"Could not connect to {self._ssid}")
-
+            return False
+'''
 async def flash_loop(display):
     while True:
         display.flash(*cos_yellow)
@@ -81,3 +82,4 @@ async def main():
     task.cancel()
     display.flash(0,0,0)
 uasyncio.run(main())
+'''
