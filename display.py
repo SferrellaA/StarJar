@@ -21,14 +21,6 @@ class LED_Strip:
         for led in range(self.NUM_LEDS):
             self.strip.set_rgb(led, randint(1,255), randint(1,255), randint(1,255))
 
-    '''
-    async def timed_effect(self, time, effect, *args):
-        try:
-            await uasyncio.wait_for(effect(*args), time)
-        except uasyncio.TimeoutError:
-            pass
-        self.flash(0,0,0)
-    '''
     async def flash_loop(self):
         while True:
             self.flash(*cos_yellow)
