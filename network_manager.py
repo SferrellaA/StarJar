@@ -29,14 +29,29 @@ class NetworkManager:
             self._ap_if.disconnect()
     
     async def connect(self):
+        #global checkPointOne
         self._sta_if.active(True)
-        self._sta_if.connect(self._ssid, self._psk)
-        for attempt in range(1,6):
-            print(f"Connection attempt {attempt}/5")
-            if self._sta_if.isconnected():
-                print(f"Connected to {self._ssid}")
-                return True
+        #for attempt in range(1,6):
+        while not self._sta_if.isconnected():
+            self._sta_if.connect(self._ssid, self._psk)
+            #print(f"Connection attempt {attempt}/5")
+            print("aaa")
             await uasyncio.sleep(3)
+        print("bbb")
+        global checkPointOne
+        checkPointOne = True
+        '''
+        if self._sta_if.isconnected():
+            #print(f"\nConnected to {self._ssid}")
+            print("bbb")
+            global checkPointOne
+            checkPointOne = True
+            return
+        '''
+        '''
         else:
-            print(f"Could not connect to {self._ssid}")
-            return False
+            #print(f"Could not connect to {self._ssid}")
+            print("ccc")
+            #checkPointOne = False
+            uasyncio.sleep(3)
+        '''

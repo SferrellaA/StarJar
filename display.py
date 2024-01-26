@@ -14,19 +14,12 @@ class LED_Strip:
         self.strip.start()
 
     def flash(self, r, g, b):
-        if r == -1 and g == -1 and b == -1:
-            for led in range(self.NUM_LEDS):
-                self.strip.set_rgb(led, randint(1,255), randint(1,255), randint(1,255))
-            return
-        else:
-            if r == -1:
-                r = randint(1,255)
-            if g == -1:
-                g = randint(1,255)
-            if b == -1:
-                b = randint(1,255)
         for led in range(self.NUM_LEDS): 
             self.strip.set_rgb(led, r, g, b)
+    
+    def flash_rainbow(self):
+        for led in range(self.NUM_LEDS):
+            self.strip.set_rgb(led, randint(1,255), randint(1,255), randint(1,255))
 
     '''
     async def timed_effect(self, time, effect, *args):
@@ -123,25 +116,34 @@ class LED_Strip:
         '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-',
         '(':'-.--.', ')':'-.--.-', '!':'-.-.--'}
 
-    def moorse(self, phrase, color):
-        if color == ():
-            color = (-1,-1,-1)
-        block_sleep(1.5)
+    async def moorse(self, phrase):
+        # Pick an effect to moorse code
+        effect = randint(0,2)
+        if effect == 0:
+            effect = lambda: self.flash(255,255,255)
+        elif effect == 1:
+            color = (randint(1,255), randint(1,255), randint(1,255))
+            effect = lambda: self.flash(*color)
+        else:
+            effect = self.flash_rainbow
+        
+        # Actually tap out the phrase
+        await uasyncio.sleep(1.5)
         for word in phrase.split():
             for letter in word.upper():
                 print(letter, end=" ")
                 for l in self.MORSE_CODE_DICT[letter]:
                     print(l, end="")
                     if l == '.':
-                        self.flash(*color)
-                        block_sleep(1)
+                        effect()
+                        await uasyncio.sleep(1)
                     else: #dash
-                        self.flash(*color)
-                        block_sleep(2)
+                        effect()
+                        await uasyncio.sleep(2)
                     self.flash(0,0,0)
-                    block_sleep(1)
+                    await uasyncio.sleep(1)
                 print()
-                block_sleep(1.5)
+                await uasyncio.sleep(1.5)
             print()
 
 
