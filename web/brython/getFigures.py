@@ -21,11 +21,10 @@ def insert_table(event):
 document["button7"].bind("click", insert_table)
 '''
 
-figure = html.figure()
-figure <= html.img(src="images/computercraft.jpg.png", alt="???")
-figure <= html.figcaption("???", style="color: red;")
-scrollmenu <= html.figure("Introducing Brython")
-
+figure = html.FIGURE()
+figure <= html.IMG(src="images/computercraft.jpg.png", alt="???")
+figure <= html.FIGCAPTION("???", style="color: red;")
+scrollmenu <= figure
 '''
     <figure>
         <img src="images/computercraft.jpg.png" alt="images/computercraft.jpg.png">
