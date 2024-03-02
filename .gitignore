@@ -1,3 +1,2 @@
-web/brython/*
-!web/brython/*.py
+web/brython.js
 web/images/*
