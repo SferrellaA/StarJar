@@ -1,6 +1,7 @@
+from browser import document
+
 # background color
-b = document.select_one("body")
-b.style = {
+document.select_one("body").style = {
     "margin": "40px auto",
     "max-width": "650px",
     "line-height": "1.6",
@@ -10,14 +11,16 @@ b.style = {
     "background-color": "#D2E0FB"
 }
 
-scrollmenu.style = {
+# scrollmenu
+document.select_one("div").style = {
     "overflow": "auto",
     "white-space": "nowrap",
     "display": "flex",
     "align-items": "center",
 }
 
-    figure.style = {
+for f in document.select("figure"):
+    f.style = {
         "display": "inline-block",
         "text-align": "center",
         "text-decoration": "none",

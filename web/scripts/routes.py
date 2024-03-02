@@ -6,10 +6,22 @@ interpreter = open('brython.js').read()
 def brython():
     return interpreter
 
-template = open('template.html').read()
+template_html = open('template.html').read()
+
+def enscript(script):
+    return f'<script type="text/python" src="/get/script/{script}"></script>'
+
 @route('/')
-def index():
-    return template.format(content=open(path.join('scripts', 'index.py')).read())
+def main():
+    #content  = '''\
+    #<script type="text/python>
+    #{index}
+    #</script>'
+    #'''.format(index=open(path.join('scripts', 'index.py')).read())
+    content = '<script type="text/python">\n{index}\n</script>\n'
+    content = content.format(index=open(path.join('scripts', 'index.py')).read())
+    content += enscript("css.py")
+    return template_html.format(body=content)
 
 @route('/images/<figure>')
 def images(figure):

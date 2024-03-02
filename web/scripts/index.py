@@ -4,6 +4,7 @@ from browser.html import *
 # Page Title
 document.select_one("head") <= TITLE("STOP REVERSE ENGINEERING")
 
+'''
 # background color
 b = document.select_one("body")
 b.style = {
@@ -15,6 +16,7 @@ b.style = {
     "padding": "010px",
     "background-color": "#D2E0FB"
 }
+'''
 
 # Body header
 header = HEADER()
@@ -42,21 +44,25 @@ document <= P() <= STRONG("(this is real computer science done by real computer 
 
 # figure generation
 scrollmenu = DIV()
+'''
 scrollmenu.style = {
     "overflow": "auto",
     "white-space": "nowrap",
     "display": "flex",
     "align-items": "center",
 }
+'''
 for i in range(5):
     figure = FIGURE()
     figure <= IMG(src="images/computercraft.jpg.png", alt="???")
     figure <= FIGCAPTION("???", style="color: red;")
+    '''
     figure.style = {
         "display": "inline-block",
         "text-align": "center",
         "text-decoration": "none",
     }
+    '''
     scrollmenu <= figure
 document <= scrollmenu
 
