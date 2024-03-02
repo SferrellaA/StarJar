@@ -1,6 +1,13 @@
 from browser import document, html
 
 scrollmenu = document.select_one('.scrollmenu') # get the first (only) scrollmenu element
+scrollmenu.style = {
+    "overflow": "auto",
+    "white-space": "nowrap",
+    "display": "flex",
+    "align-items": "center",
+}
+
 
 '''
 from browser.html import TABLE, TR, TH, TD
@@ -24,6 +31,14 @@ document["button7"].bind("click", insert_table)
 figure = html.FIGURE()
 figure <= html.IMG(src="images/computercraft.jpg.png", alt="???")
 figure <= html.FIGCAPTION("???", style="color: red;")
+figure.style = {
+    "display": "inline-block",
+    "text-align": "center",
+    "text-decoration": "none",
+}
+
+
+
 scrollmenu <= figure
 '''
     <figure>
