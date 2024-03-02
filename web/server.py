@@ -15,7 +15,7 @@ def build_template(*args):
 
 @route('/')
 def index():
-    return build_template('/brython/index.py', '/brython/getFigures.py', '/brython/css.py')
+    return build_template('/brython/index.py', '/brython/css.py')
 
 @route('/index.html')
 def index_html():
