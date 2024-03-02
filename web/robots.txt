@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /brython.js
+Disallow: /template.html
+Disallow: /images/
+Disallow: /get/
