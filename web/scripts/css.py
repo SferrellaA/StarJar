@@ -12,7 +12,6 @@ document.select_one("body").style = {
 }
 
 # scrollmenu
-#document.select_one("div").style = {
 document.select_one("DIV.scrollmenu").style = {
     "overflow": "auto",
     "white-space": "nowrap",
@@ -26,3 +25,6 @@ for f in document.select("figure"):
         "text-align": "center",
         "text-decoration": "none",
     }
+
+for f in document.select("FIGCAPTION"):
+    f.style = {"color": "red"}
