@@ -4,20 +4,6 @@ from browser.html import *
 # Page Title
 document.select_one("head") <= TITLE("STOP REVERSE ENGINEERING")
 
-'''
-# background color
-b = document.select_one("body")
-b.style = {
-    "margin": "40px auto",
-    "max-width": "650px",
-    "line-height": "1.6",
-    "font-size": "18px",
-    "color": "#444", 
-    "padding": "010px",
-    "background-color": "#D2E0FB"
-}
-'''
-
 # Body header
 header = HEADER()
 header <= H1("STOP DOING ") <= CODE("Reverse engineering")
@@ -43,26 +29,11 @@ document <= P("look at what FMA has been demanding your respect for, after we pu
 document <= P() <= STRONG("(this is real computer science done by real computer scientists):")
 
 # figure generation
-scrollmenu = DIV()
-'''
-scrollmenu.style = {
-    "overflow": "auto",
-    "white-space": "nowrap",
-    "display": "flex",
-    "align-items": "center",
-}
-'''
+scrollmenu = DIV(Class='scrollmenu')
 for i in range(5):
     figure = FIGURE()
     figure <= IMG(src="images/computercraft.jpg.png", alt="???")
     figure <= FIGCAPTION("???", style="color: red;")
-    '''
-    figure.style = {
-        "display": "inline-block",
-        "text-align": "center",
-        "text-decoration": "none",
-    }
-    '''
     scrollmenu <= figure
 document <= scrollmenu
 

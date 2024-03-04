@@ -13,14 +13,9 @@ def enscript(script):
 
 @route('/')
 def main():
-    #content  = '''\
-    #<script type="text/python>
-    #{index}
-    #</script>'
-    #'''.format(index=open(path.join('scripts', 'index.py')).read())
-    content = '<script type="text/python">\n{index}\n</script>\n'
+    content = '<script type="text/python">\n{index}\n</script>'
     content = content.format(index=open(path.join('scripts', 'index.py')).read())
-    content += enscript("css.py")
+    content += f'\n{enscript("css.py")}\n'
     return template_html.format(body=content)
 
 @route('/images/<figure>')

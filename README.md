@@ -27,5 +27,14 @@ All parts of the challenge can be solved with a mobile phone and without advance
 
 ### Phase Two
 <details><summary>spoiler warning</summary>
-    spoiler text
+    - The user connects to the device as a web server
+    - The web server presents a page warning the player off
+    - The player looks at page source
+    - The available endpoints are limited, but a get-thing endpoint can be used to look at things
+    - the web server uses the endpoint to provide images, but it is not sandboxed
+    - the player uses the get-thing endpoint to see how server.py works
+    - server.py at runtime generates a random endpoint the plalyer is supposed to find
+    - the jar flashes a code to be entered into the random endpoint
+        - this code is also available through a debug endpoint the player might find
+    - the player inputs the code into the random endpoint
 </details>
