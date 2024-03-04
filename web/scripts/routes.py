@@ -1,13 +1,6 @@
 from bottle import route, static_file
 from os import path
 
-'''
-interpreter = open('brython.js').read()
-@route('/brython.js')
-def brython():
-    return interpreter
-'''
-
 @route('/brython.js')
 def brython():
     return static_file('brython.js', '.')
@@ -15,7 +8,6 @@ def brython():
 @route('/brython_stdlib.js')
 def brython():
     return static_file('brython_stdlib.js', '.')
-
 
 template_html = open('template.html').read()
 
@@ -32,6 +24,7 @@ def main():
 # scripts and images
 import scripts.get
 '''
+# TODO - shift this into a separate file
 @route('/images/<figure>')
 def images(figure):
     return static_file(figure, root="images")

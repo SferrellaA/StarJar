@@ -28,29 +28,7 @@ document <= arguments
 document <= P("look at what FMA has been demanding your respect for, after we put all the walls around their section")
 document <= P() <= STRONG("(this is real computer science done by real computer scientists):")
 
-''''
-# figure generation
-scrollmenu = DIV(Class='scrollmenu')
-for i in range(5):
-    figure = FIGURE()
-    #figure <= IMG(src="images/computercraft.jpg.png", alt="???")
-    figure <= IMG(src="/get/images", alt="???")
-    figure <= FIGCAPTION("???") #, style="color: red;")
-    scrollmenu <= figure
-document <= scrollmenu
-'''
-
-'''
-def getter(req):
-    print(req.txt)
-#ajax.get(url="/get/images", blocking=True, oncomplete=getter) 
-req = ajax.ajax()
-req.bind('complete', getter)
-req.open('GET', "/get/images", True)
-#req.set_header('content-type','application/x-www-form-urlencoded')
-req.send()
-'''
-
+# instert figures into section
 scrollmenu = DIV(Class='scrollmenu')
 for i in range(5):
     image = ""
@@ -63,11 +41,6 @@ for i in range(5):
     figure <= FIGCAPTION("???")
     scrollmenu <= figure
 document <= scrollmenu
-
-#ajax.get("test.txt", oncomplete=read)
-
-
-
 
 # conclusion
 document <= P() <= STRONG("IF REVERSE ENGINEERING WAS REAL HOW COME NOBODY THOUGHT OF PUBLISHING SOURCE CODE")
