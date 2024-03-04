@@ -19,8 +19,9 @@ def get_file(kind, file):
 def get_kind(kind):
     if kind == "hidden":
         return get_hidden()
-    try:
+    if kind == "scripts":
+        return '<br>'.join(listdir(kind))
+    if kind == "images":
         file = choice(listdir(kind))
         return path.join("get", kind, file)
-    except:
-        return HTTPResponse(status=404, body=f'<strong>{kind}</strong>')
+    return HTTPResponse(status=404, body=f'<strong>{kind}</strong>')
