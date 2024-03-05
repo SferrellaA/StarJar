@@ -1,13 +1,12 @@
-from bottle import route
 from random import choice, randint
 from string import ascii_letters, digits
 
 def gen_hidden():
     global hidden
     hidden = ''.join(choice(ascii_letters + digits) for _ in range(randint(10,20)))
-    @route(f'/{hidden}')
+    @app.get(f'/{hidden}')
     def victory():
-        return f'<strong><p>VICTORY!</p></strong>'
+        return f'<strong><p>VICTORY!</p></strong>', 233
 
 def get_hidden():
     global hidden

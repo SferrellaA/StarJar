@@ -1,10 +1,11 @@
-from bottle import route, static_file, HTTPResponse
+#from bottle import route, static_file, HTTPResponse
+from microdot import send_file
 from os import path, listdir
 from random import choice
 from scripts.hidden import get_hidden
 
-@route('/get/<kind>/<file>')
-def get_file(kind, file):
+@app.get('/get/<kind>/<file>')
+def get_file(request, kind, file):
     if kind == "scripts":
         script = path.join('scripts', file)
         if path.exists(script):
@@ -15,8 +16,8 @@ def get_file(kind, file):
             return static_file(file, 'images')
     return f'<strong>{kind}</strong><br>{file}'
 
-@route('/get/<kind>')
-def get_kind(kind):
+@app.get('/get/<kind>')
+def get_kind(request, kind):
     if kind == "hidden":
         return get_hidden()
     if kind == "scripts":
@@ -24,4 +25,4 @@ def get_kind(kind):
     if kind == "images":
         file = choice(listdir(kind))
         return path.join("get", kind, file)
-    return HTTPResponse(status=404, body=f'<strong>{kind}</strong>')
+    return f'<strong>{kind}</strong>', 433
