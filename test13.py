@@ -2,14 +2,22 @@ from network_manager import NetworkManager
 import uasyncio
 from microdot import Microdot
 
-wifi = NetworkManager("ATTBRyYu7C", "t84dyhw?4m9t")
+try:
+    import WIFI_CONFIG
+    SSID = WIFI_CONFIG.SSID
+    PSK = WIFI_CONFIG.PSK
+except:
+    print("excepted")
+    SSID = "Tigers99"
+    PSK = "Tigers99"
+wifi = NetworkManager(SSID, PSK)
+
 print("connecting")
 wifi.connect()
-#uasyncio.sleep(5)
+uasyncio.sleep(3)
 if wifi._sta_if.isconnected(): #success!
     print("connected!")
     print(wifi.ifaddress())
-    #connect.cancel()
 else:
     print("could not connect")
 

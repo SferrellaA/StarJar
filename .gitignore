@@ -3,3 +3,4 @@ web/brython_stdlib.js
 web/images/*
 web/scripts/__pycache__
 microdot.py
+WIFI_CONFIG.py
