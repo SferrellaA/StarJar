@@ -2,3 +2,4 @@ web/brython.js
 web/brython_stdlib.js
 web/images/*
 web/scripts/__pycache__
+microdot.py
