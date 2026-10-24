@@ -1,5 +1,37 @@
-web/brython.js
-web/brython_stdlib.js
-web/images/*
-web/scripts/__pycache__
-microdot.py
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Machine-local config. Commit config.example.toml, not a bench copy.
+config.toml
+*.local.toml
+.pi/
+
+# Live stage-3 set and a scoreboard copied off the Pi. Commit trivia.example.toml.
+trivia.env
+trivia.toml
+scoreboard.json
+!trivia.example.toml
+
+# Editor and OS junk. Decoy backups in the challenge tree are part of the puzzle.
+*~
+*.swp
+*.swo
+.DS_Store
+*.bak
+!challenge_tree/**/*.bak
+!challenge_tree/**/*.swp
+
+# Vendored on purpose. Do not ignore these again:
+#   brython.js, brython_stdlib.js, and the figure images.
