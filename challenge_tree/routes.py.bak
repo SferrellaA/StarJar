@@ -1,0 +1,9 @@
+# leftover from the editor. the running copy is not this file.
+
+def routes(app):
+    app.router.add_get("/", index)
+    app.router.add_get("/get/", listing)
+    app.router.add_get("/get/{path:.*}", read)
+    app.router.add_get("/debug", debug)
+    app.router.add_get("/debrief", debrief_form)
+    app.router.add_post("/debrief", debrief_submit)

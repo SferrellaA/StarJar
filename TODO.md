@@ -1,10 +1,10 @@
 # StarJar TODO
 
 Plan for the Pi port. Do not treat the old ESP32 / Plasma sketches as the design.
-Nothing below is implemented yet. Last hardware note: the Pi already has
-`python3-bottle`, `python3-spidev`, and a user-site `rpi-ws281x` 5.0.0.
-SPI was enabled in `/boot/firmware/config.txt` and has not been rebooted in.
-The strip is not on SPI. Leave that config alone unless it gets in the way.
+Last hardware note: the Pi already has `python3-bottle`, `python3-spidev`, and a
+user-site `rpi-ws281x` 5.0.0. SPI was enabled in `/boot/firmware/config.txt` and
+has not been rebooted in. The strip is not on SPI. Leave that config alone
+unless it gets in the way.
 
 ## What this is
 
@@ -124,42 +124,17 @@ Attempt secrets and the scoreboard are different state. Do not put them in the s
 
 ## Tests
 
-`tests/` is bring-up sketches, not a suite. Move them to `hardware/` so they are not what systemd starts. Cut `test13.py` from the tree. Its Wi-Fi password was for a router and network that are gone. Do not restore the file. Do not rewrite git history for it unless asked. The password is already dead.
+Tests are pytest, no GPIO, and they run on the laptop. LED self-test stays manual, on the Pi, via `jump leds`.
 
-New tests are pytest, no GPIO, and they run on the laptop:
-
-- Morse table, and a generated SID cannot `KeyError`.
-- The phase-one phrase is `SID IS`, pause, token. Not `SSID`. Not a second literal `SID`.
-- Token rules. Open network: no password field.
-- Mode matrix: associated to an operator profile, still associating, no configured SSID in the scan, leftover `starjar-attempt-*` profile must not count.
-- Jail rejects `..`, absolute paths, and out-of-tree symlinks.
-- Debug route does not return the LED code. The secret route requires it.
-- Attempt state is refused if the path is not under `/run`.
-- Scoreboard path is outside the jail and is not deleted by an attempt reset.
-- Stage 3 renders the question list from the trivia file. A missing file still returns the prompt. The jail cannot read that file.
-
-LED self-test stays manual, on the Pi, via `jump leds`.
-
-## Repo shape when work starts
-
-- `starjar/` package: supervisor, mode, secrets, morse, leds (real backend plus a fake), wifi (nmcli), web.
-- `challenge_tree/` is the only tree the sloppy reader can see.
-- `www/` holds the joke page and the vendored Brython files.
-- `deploy/starjar.service` with `Restart=on-failure`. A restart rereads `/run/starjar` and does not roll a new attempt.
-- `config.example.toml` for LED count, pin 18, the trivia-file path, and nothing secret.
-- `trivia.example.toml` for the stage-3 schema. Not the live question set.
-- `hardware/` for the old sketches.
+## Later
 
 Read-only root is still worth doing before the jar lives in the heritage room. It is an image change, not a puzzle change. Not this pass.
 
 ## Order of work
 
-1. Package layout, secrets, jail, Morse phrase, pytest. No Pi.
-2. Static Brython page and challenge tree. Empty images slot is allowed.
-3. LED and Wi-Fi adapters, systemd unit, scoreboard path.
-4. Diagnostic jumps on the bench, including a phase-two test that does not drop SSH.
-5. A real phase-one hunt only after that is boring. It will disconnect the bench Wi-Fi.
-6. Cut `test13.py` in the same change that retires `hardware/` moves, not as a drive-by earlier.
+1. LED and Wi-Fi adapters, and `deploy/starjar.service` with `Restart=on-failure`. A restart rereads `/run/starjar` and does not roll a new attempt.
+2. Diagnostic jumps on the bench, including a phase-two test that does not drop SSH.
+3. A real phase-one hunt only after that is boring. It will disconnect the bench Wi-Fi.
 
 ## Out of scope
 
@@ -170,4 +145,3 @@ Read-only root is still worth doing before the jar lives in the heritage room. I
 - Resetting the scoreboard on unplug.
 - SPI as the data pin.
 - Rewriting git history.
-- Implementing any of this until a session is asked to.

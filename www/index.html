@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STOP REVERSE ENGINEERING</title>
+<script src="/brython.js"></script>
+<script src="/brython_stdlib.js"></script>
+<style>
+body { font-family: Impact, sans-serif; background: #111; color: #f4f4f4; margin: 1.2rem; }
+h1 { letter-spacing: 0.04em; }
+aside { color: #bbb; font-family: sans-serif; }
+li { margin: 0.4rem 0; }
+.scrollmenu { display: flex; gap: 1rem; overflow-x: auto; }
+figure { margin: 0; min-width: 8rem; }
+img { max-width: 16rem; background: #222; }
+</style>
+</head>
+<body onload="brython()">
+<script type="text/python">
+from browser import document, ajax
+from browser.html import *
+
+# list endpoint: /get/
+
+document.select_one("head") <= TITLE("STOP REVERSE ENGINEERING")
+
+header = HEADER()
+header <= H1("STOP DOING ") <= CODE("Reverse engineering")
+header <= ASIDE("APIS WERE NOT MEANT TO BE UNDERSTOOD")
+document <= header
+
+arguments = UL()
+arguments <= LI("YEARS OF REVERSE ENGINEERING yet NO REAL-WORLD USE FOR understanding compiled CODE")
+arguments <= LI("sure we are not relaying information that could be used against us")
+arguments <= LI("security through obscurity")
+arguments <= LI("cease and desist")
+arguments <= LI("Title 49 Code of Federal Regulations parts § 1540.103(c) states: No person may make, or cause to be made any reproduction or alteration, for fraudulent purpose, of any report, record, security program, access medium, or identification medium issued under this subchapter. ")
+arguments <= LI("Computers were supposed to solve meath, not to be programmed")
+arguments <= LI("C is a letter, not a language")
+arguments <= LI("wanna print() something? Write in a paper with a pen")
+arguments <= LI('"I\'n writing a recursive method with threads to optimize the cpu usage in a 0.02%" this is a nonsensical statement made by deranged people')
+arguments <= LI("glowing text", style="text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00;")
+document <= arguments
+
+document <= P("look at what FMA has been demanding your respect for, after we put all the walls around their section")
+document <= P() <= STRONG("(this is real computer science done by real computer scientists):")
+
+scrollmenu = DIV(Class="scrollmenu")
+document <= scrollmenu
+
+def add_figures(req):
+    try:
+        if req.status != 200:
+            return
+        body = req.text
+    except Exception:
+        return
+    if not body:
+        return
+    for name in body.splitlines():
+        name = name.strip()
+        if not name or name.endswith("/") or name == ".gitkeep":
+            continue
+        figure = FIGURE()
+        figure <= IMG(src="/get/images/" + name, alt="???")
+        figure <= FIGCAPTION("???")
+        scrollmenu <= figure
+
+# figures are optional. an empty images directory must not throw.
+ajax.get("/get/images", mode="text", oncomplete=add_figures)
+
+document <= P() <= STRONG("IF REVERSE ENGINEERING WAS REAL HOW COME NOBODY THOUGHT OF PUBLISHING SOURCE CODE")
+document <= P() <= STRONG("THEY'VE PLAYED US FOR ABSOLUTE FOOLS")
+</script>
+</body>
+</html>

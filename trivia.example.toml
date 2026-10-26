@@ -1,0 +1,12 @@
+# Stage 3 schema. Placeholder text only. No answer key.
+# The live set is /var/lib/starjar/trivia.toml (or the path in config.toml).
+# Replacing it is a file replace and a service restart, not a code change.
+
+title = "After the code"
+prompt = "Ask someone who was there."
+
+questions = [
+  "Placeholder question one.",
+  "Placeholder question two.",
+  "Placeholder question three.",
+]

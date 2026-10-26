@@ -1,40 +1,22 @@
 # StarJar
 
-Meant to be a reverse-engineering challenge for my coworkers. Ostensibly an art installation, it advertises `secret` information that can be investigated.
+A jar in the unit heritage room. It looks like an art piece. A phone can solve it.
 
+The plan and the constraints are `TODO.md`. Do not treat this file as a walkthrough.
 
-All parts of the challenge can be solved with a mobile phone and without advanced tools. 
+## Laptop
 
-## Walkthrough:
-### Phase One
-<details><summary>The jar flashes in morse-code...</summary>
-    <details><summary>An SSID that does not exist...</summary>
-        <details><summary>That the player should...</summary>
-            <details><summary>Themselves host with a password...</summary>
-                That is the same as the SSID
-            </details>
-            <details><summary>HOWTO</summary>
-                Create a phone hotspot with the name of the SSID
-            </details>
-        </details>
-    </details>
-</details>
-<details><summary>Alternatively look at...</summary>
-    <details><summary>Connection attempts via...</summary>
-        The Aircrack-ng suite
-    </details>
-</details>
+Python 3.13, same as the Pi. uv manages this checkout. It cannot install its own CPython on the Pi (armv6).
 
-### Phase Two
-<details><summary>spoiler warning</summary>
-    - The user connects to the device as a web server
-    - The web server presents a page warning the player off
-    - The player looks at page source
-    - The available endpoints are limited, but a get-thing endpoint can be used to look at things
-    - the web server uses the endpoint to provide images, but it is not sandboxed
-    - the player uses the get-thing endpoint to see how server.py works
-    - server.py at runtime generates a random endpoint the plalyer is supposed to find
-    - the jar flashes a code to be entered into the random endpoint
-        - this code is also available through a debug endpoint the player might find
-    - the player inputs the code into the random endpoint
-</details>
+```sh
+uv sync
+uv run pytest
+```
+
+## Pi
+
+Raspbian 13, system Python 3.13. aiohttp is pinned to the trixie package, `python3-aiohttp` 3.11.16, so the board does not compile it. Do not `uv python install` there.
+
+Figures, if any, go in `challenge_tree/images/`. An empty directory is fine. Do not generate stand-ins.
+
+The live trivia file is `/var/lib/starjar/trivia.toml`, or the path in `config.toml`. It is not in git. `trivia.example.toml` is the schema and placeholders only.

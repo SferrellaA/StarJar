@@ -1,0 +1,17 @@
+# Bench copy is config.toml and is not committed. Nothing in here is secret.
+
+[leds]
+count = 50
+pin = 18
+order = "RGB"
+
+[paths]
+attempt = "/run/starjar"
+trivia = "/var/lib/starjar/trivia.toml"
+scoreboard = "/var/lib/starjar/scoreboard.json"
+challenge_tree = "challenge_tree"
+www = "www"
+
+[web]
+host = "0.0.0.0"
+port = 8080

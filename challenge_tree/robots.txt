@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /get/
+Disallow: /debug
+Disallow: /debrief
+Disallow: /brython.js
+Disallow: /brython_stdlib.js

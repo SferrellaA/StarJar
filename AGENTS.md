@@ -16,6 +16,15 @@ session was asked to. Do not revive the ESP32 / Plasma design from the sketches.
 - No PHP, no player shell, no command injection, no webshell. File reads stay inside the challenge tree after a realpath check. A sloppy server is the puzzle. A path onto the Pi is a different project.
 - `test13.py` has a dead router password. Cut it when retiring the old sketches. Do not restore it. Do not rewrite history for it unless asked.
 - Figures are missing on purpose. The operator will supply new ones. Do not generate stand-in memes and commit them. An empty images directory must not crash the page.
+- The Pi is armv6 (Raspbian 13) with system Python 3.13. uv cannot install its own CPython there. Stay on 3.13. aiohttp stays pinned to the trixie package (3.11.16) so the Pi does not need a source build.
+
+## TODO
+
+When an item in `TODO.md` is done, delete it. Do not mark it complete, check it off, or leave it as a record of finished work.
+
+## Git
+
+The user controls git. Do not commit, stage, push, tag, rebase, reset, or otherwise change git state unless this session was asked to.
 
 ## Bench
 

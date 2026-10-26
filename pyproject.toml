@@ -1,0 +1,25 @@
+[project]
+name = "starjar"
+version = "0.1.0"
+description = "Heritage-room jar"
+requires-python = ">=3.13"
+dependencies = [
+    # Raspbian trixie python3-aiohttp. The Pi is armv6; do not bump past
+    # that package or the board has to compile aiohttp.
+    "aiohttp==3.11.16",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
