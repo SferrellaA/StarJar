@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.conftest import writable_run_dir
 from starjar.secrets import (
     CODE_LENGTH,
     SID_LENGTH,
@@ -42,7 +43,7 @@ def test_attempt_state_refused_outside_run(tmp_path: Path):
 
 
 def test_restart_rereads_and_reset_removes_only_the_attempt(tmp_path: Path):
-    directory = Path(f"/run/user/{os.getuid()}") / f"starjar-pytest-{os.getpid()}"
+    directory = writable_run_dir() / f"starjar-pytest-{os.getpid()}"
     reset_attempt(directory)
     rng = random.Random(2)
     first = load_or_create(directory, rng)
@@ -62,7 +63,7 @@ def test_restart_rereads_and_reset_removes_only_the_attempt(tmp_path: Path):
 
 
 def test_partial_attempt_is_not_replaced(tmp_path: Path):
-    directory = Path(f"/run/user/{os.getuid()}") / f"starjar-partial-{os.getpid()}"
+    directory = writable_run_dir() / f"starjar-partial-{os.getpid()}"
     directory.mkdir(mode=0o700, exist_ok=True)
     (directory / "sid").write_text("AB12CD34\n", encoding="ascii")
     try:

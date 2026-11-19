@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.conftest import writable_run_dir
 from starjar.scoreboard import DEFAULT_SCOREBOARD, load_public, save
 from starjar.secrets import AttemptPathError, reset_attempt
 
@@ -25,7 +26,7 @@ def test_atomic_write_backup_and_reset_does_not_delete_it(tmp_path: Path):
     assert backup.read_text(encoding="utf-8") == board.read_text(encoding="utf-8")
     assert load_public(board) == stored
 
-    attempt = Path(f"/run/user/{os.getuid()}") / f"starjar-board-{os.getpid()}"
+    attempt = writable_run_dir() / f"starjar-board-{os.getpid()}"
     attempt.mkdir(mode=0o700)
     (attempt / "sid").write_text("AB12CD34\n", encoding="ascii")
     reset_attempt(attempt)
@@ -33,3 +34,12 @@ def test_atomic_write_backup_and_reset_does_not_delete_it(tmp_path: Path):
     assert backup.exists()
     with pytest.raises(AttemptPathError):
         reset_attempt(board)
+
+
+def test_torn_main_file_falls_back_to_the_backup(tmp_path: Path):
+    board = tmp_path / "scoreboard.json"
+    save(board, [{"initials": "AL", "time": 12}])
+    board.write_text("{", encoding="utf-8")
+    assert load_public(board) == [{"initials": "AL", "time": 12}]
+    board.unlink()
+    assert load_public(board) == [{"initials": "AL", "time": 12}]
