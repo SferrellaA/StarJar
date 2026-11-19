@@ -1,0 +1,12 @@
+[Unit]
+Description=StarJar USB ethernet gadget
+After=systemd-modules-load.service NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/starjar-usb-gadget.sh
+
+[Install]
+WantedBy=multi-user.target

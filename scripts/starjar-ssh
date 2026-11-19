@@ -1,0 +1,3 @@
+#!/bin/sh
+# Same as starjar-shell. Extra arguments are run on the Pi instead of a shell.
+exec "$(CDPATH= cd -- "$(dirname "$0")" && pwd)/starjar-shell" "$@"

@@ -28,7 +28,7 @@ The user controls git. Do not commit, stage, push, tag, rebase, reset, or otherw
 
 ## Bench
 
-- SSH host `starjar`, user `star`, key auth. Password auth is off. `sudo -n` works.
+- SSH host `starjar`, user `star`, key auth. Password auth is off. `sudo -n` works. Wired shell from WSL or a Linux host is `scripts/starjar-shell`. WSL cannot see the USB NIC, so that script uses Windows `ssh.exe` there. On Linux it configures the gadget NIC and must not add a default route. Key is `~/.ssh/starjar`, not in git. Addresses are `10.55.0.1` and `169.254.55.1`.
 - The Pi is on the bench Wi-Fi. A phase-one hunt disconnects that link and drops SSH unless ethernet is up.
 - Diagnostic stage jumps are shell commands, not a LAN page. See `TODO.md`. `jump phase1-dry` and `jump phase2` must be possible without leaving the operator network. `jump phase1` will kill the SSH session. Warn before running it.
 - Do not reboot the Pi unless asked. Do not install PHP or a second web server.

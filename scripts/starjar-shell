@@ -1,0 +1,225 @@
+#!/bin/sh
+# Open a shell on the Pi over the USB cable.
+#
+# WSL: Windows ssh.exe. The WSL network namespace cannot see the gadget.
+# Linux: find the gadget NIC, give this host an address, and ssh. No default
+# route is added. If the NIC is not up, fall back to the gadget serial port
+# (the Pi auto-logs in as star).
+#
+# Key is ~/.ssh/starjar, not in git. With no key, Linux ssh tries the agent
+# and the default keys. Extra arguments are a remote command, not a shell.
+set -eu
+
+user="${STARJAR_SSH_USER:-star}"
+hosts="${STARJAR_SSH_HOSTS:-169.254.55.1 10.55.0.1}"
+host_addr_v4=10.55.0.2
+host_addr_ll=169.254.55.2
+
+is_wsl() {
+  grep -qi microsoft /proc/version 2>/dev/null
+}
+
+run_root() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+usb_id_of() {
+  dir=$1
+  while [ -n "$dir" ] && [ "$dir" != "/" ]; do
+    if [ -r "$dir/idVendor" ] && [ -r "$dir/idProduct" ]; then
+      serial=$(cat "$dir/serial" 2>/dev/null || true)
+      printf '%s:%s:%s\n' "$(cat "$dir/idVendor")" "$(cat "$dir/idProduct")" "$serial"
+      return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
+is_starjar_usb() {
+  id=$(usb_id_of "$1" 2>/dev/null || true)
+  case $id in
+    1d6b:0104:*|0525:a4a7:*|*:starjar) return 0 ;;
+  esac
+  return 1
+}
+
+find_net() {
+  for iface_path in /sys/class/net/*; do
+    [ -e "$iface_path/device" ] || continue
+    dev=$(readlink -f "$iface_path/device") || continue
+    if is_starjar_usb "$dev"; then
+      basename "$iface_path"
+      return 0
+    fi
+  done
+  return 1
+}
+
+find_tty() {
+  for tty_path in /sys/class/tty/ttyACM*; do
+    [ -e "$tty_path/device" ] || continue
+    dev=$(readlink -f "$tty_path/device") || continue
+    if is_starjar_usb "$dev"; then
+      printf '/dev/%s\n' "$(basename "$tty_path")"
+      return 0
+    fi
+  done
+  return 1
+}
+
+drop_default_routes() {
+  iface=$1
+  run_root ip route del default dev "$iface" 2>/dev/null || true
+  run_root ip -6 route del default dev "$iface" 2>/dev/null || true
+}
+
+prepare_linux_link() {
+  iface=$(find_net) || return 1
+  if command -v nmcli >/dev/null 2>&1; then
+    run_root nmcli device set "$iface" managed no >/dev/null 2>&1 || true
+  fi
+  run_root ip link set "$iface" up
+  run_root ip addr replace "$host_addr_v4/24" dev "$iface"
+  run_root ip addr replace "$host_addr_ll/16" dev "$iface"
+  drop_default_routes "$iface"
+  printf 'usb nic %s is up (no default route)\n' "$iface" >&2
+}
+
+serial_shell() {
+  tty_dev=$(find_tty) || return 1
+  if [ ! -r "$tty_dev" ] || [ ! -w "$tty_dev" ]; then
+    printf 'serial %s needs access; retrying with sudo\n' "$tty_dev" >&2
+    exec sudo "$0" "$@"
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf 'serial is %s; install python3 or use picocom\n' "$tty_dev" >&2
+    return 1
+  fi
+  printf 'ssh unavailable; serial shell on %s\n' "$tty_dev" >&2
+  exec python3 - "$tty_dev" <<'PY'
+import os, sys, select, termios, tty
+
+path = sys.argv[1]
+fd = os.open(path, os.O_RDWR | os.O_NOCTTY)
+attrs = termios.tcgetattr(fd)
+attrs[0] = 0
+attrs[1] = 0
+attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
+attrs[3] = 0
+attrs[4] = termios.B115200
+attrs[5] = termios.B115200
+attrs[6][termios.VMIN] = 0
+attrs[6][termios.VTIME] = 0
+termios.tcsetattr(fd, termios.TCSANOW, attrs)
+
+stdin = sys.stdin.fileno()
+old = termios.tcgetattr(stdin)
+tty.setraw(stdin)
+try:
+    while True:
+        readable, _, _ = select.select([stdin, fd], [], [])
+        if stdin in readable:
+            data = os.read(stdin, 1024)
+            if not data:
+                break
+            os.write(fd, data)
+        if fd in readable:
+            try:
+                data = os.read(fd, 1024)
+            except BlockingIOError:
+                continue
+            if not data:
+                break
+            os.write(sys.stdout.fileno(), data)
+finally:
+    termios.tcsetattr(stdin, termios.TCSADRAIN, old)
+PY
+}
+
+ssh_one() {
+  host=$1
+  shift
+  tty_opt=
+  if [ "$#" -eq 0 ]; then
+    tty_opt=-t
+  fi
+  if [ -n "$identity" ]; then
+    # $tty_opt is either empty or -t.
+    "$ssh_bin" -i "$identity" -o IdentitiesOnly=yes \
+      -o ConnectTimeout=4 -o StrictHostKeyChecking=accept-new \
+      $tty_opt "$user@$host" "$@"
+  else
+    "$ssh_bin" \
+      -o ConnectTimeout=4 -o StrictHostKeyChecking=accept-new \
+      $tty_opt "$user@$host" "$@"
+  fi
+}
+
+try_hosts() {
+  last=255
+  for host in $hosts; do
+    set +e
+    ssh_one "$host" "$@"
+    last=$?
+    set -e
+    if [ "$last" -ne 255 ]; then
+      return "$last"
+    fi
+  done
+  return 255
+}
+
+if is_wsl && command -v ssh.exe >/dev/null 2>&1; then
+  ssh_bin=ssh.exe
+  win_home=$(cmd.exe /d /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+  identity=$(printf '%s/.ssh/starjar' "$win_home" | sed 's#\\#/#g')
+  key_on_disk=$(wslpath -u "$win_home")/.ssh/starjar
+else
+  ssh_bin=ssh
+  identity="${STARJAR_SSH_KEY:-$HOME/.ssh/starjar}"
+  key_on_disk=$identity
+fi
+
+if [ ! -e "$key_on_disk" ]; then
+  if is_wsl; then
+    printf 'missing key: %s\n' "$identity" >&2
+    exit 1
+  fi
+  identity="${STARJAR_SSH_KEY:-$HOME/.ssh/starjar}"
+  if [ ! -e "$identity" ]; then
+    # Agent and default keys. The Pi may already trust this machine.
+    identity=
+    ssh_bin=ssh
+  fi
+fi
+
+try_hosts "$@" || rc=$?
+rc=${rc:-0}
+if [ "$rc" -ne 255 ]; then
+  exit "$rc"
+fi
+
+if is_wsl; then
+  printf 'wired ssh failed from WSL\n' >&2
+  exit 255
+fi
+
+if prepare_linux_link; then
+  try_hosts "$@" || rc=$?
+  rc=${rc:-0}
+  if [ "$rc" -ne 255 ]; then
+    exit "$rc"
+  fi
+fi
+
+if [ "$#" -eq 0 ]; then
+  serial_shell
+fi
+
+printf 'could not open a wired shell\n' >&2
+exit 255
