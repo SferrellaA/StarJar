@@ -21,6 +21,6 @@ Raspbian 13, system Python 3.13. aiohttp is the trixie package, `python3-aiohttp
 
 The board has no RTC. Until it has a route, NTP cannot run, and a reboot leaves the clock where it was. Apt will refuse repository signatures if the clock is behind. Set UTC before installing. There is no default route on the USB gadget. Do not share that adapter with Windows Internet Connection Sharing. That rewrites the address and drops the shell.
 
-Figures, if any, go in `challenge_tree/images/`. An empty directory is fine. Do not generate stand-ins.
+Joke figures are generators in `challenge_tree/images/`. Preview them with `scripts/render-figures.sh`. The visual spec is `scripts/figures.md`. An empty images directory is still fine.
 
 The live trivia file is `/var/lib/starjar/trivia.toml`, or the path in `config.toml`. It is not in git. `trivia.example.toml` is the schema and placeholders only.

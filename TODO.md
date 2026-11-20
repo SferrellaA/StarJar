@@ -81,12 +81,9 @@ Bias: one process that can serve static files and share the in-memory attempt wi
 
 The page stays Brython. Part of the challenge is "what am I looking at?" and then noticing it is just Python in the page. Self-host `brython.js` and `brython_stdlib.js`. Do not load them from a CDN. They were gitignored for the ESP32. Stop ignoring them, vendor a pinned release, and commit the files. Recovering the old blobs from git history is fine if the version is known. Otherwise pin a current release and record the version.
 
-The joke page is the existing "stop doing X" copypasta. There is no generator to check in. The format reference is the text pattern, not an image macro:
+The joke page is the existing "stop doing X" copypasta. The format reference is the text pattern, not an image macro: https://knowyourmeme.com/memes/stop-doing-math
 
-- https://knowyourmeme.com/memes/stop-doing-math
-- https://gist.github.com/wassname/b2fb9087f2d954261524f9e0d5d50ff8 (examples an LLM wrote, not a renderer)
-
-New figures are the operator's job. The old ones were gitignored and are not in the working tree. The page must tolerate an empty images directory. Do not invent replacement memes and commit them.
+Figures are Python generators in `challenge_tree/images/*.py`. The page loads them through `/get/images` and draws the SVG they return. That code is a red herring. An empty images directory must not crash the page. Do not replace the generators with raster memes. `scripts/figures.md` is what each picture is supposed to look like. `scripts/render-figures.sh` renders a gallery for that check.
 
 Sloppy on purpose, jailed for real. Several ways through, none of them a shell:
 

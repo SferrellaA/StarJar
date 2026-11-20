@@ -15,7 +15,7 @@ session was asked to. Do not revive the ESP32 / Plasma design from the sketches.
 - The strip data pin is GPIO 18 (PWM), already wired, with 5V and ground. Do not migrate it to SPI. `rpi_ws281x` is the driver. SPI was enabled earlier by mistake. It is not the data path.
 - No PHP, no player shell, no command injection, no webshell. File reads stay inside the challenge tree after a realpath check. A sloppy server is the puzzle. A path onto the Pi is a different project.
 - `test13.py` has a dead router password. Cut it when retiring the old sketches. Do not restore it. Do not rewrite history for it unless asked.
-- Figures are missing on purpose. The operator will supply new ones. Do not generate stand-in memes and commit them. An empty images directory must not crash the page.
+- Figures are Brython generators in `challenge_tree/images/*.py`. The page fetches them through `/get/images` and draws the SVG they return. They are a red herring, not a secret. An empty images directory must not crash the page. Do not replace them with raster stand-ins. `scripts/figures.md` is what each picture is supposed to look like. `scripts/render-figures.sh` renders a gallery for that check.
 - The Pi is armv6 (Raspbian 13) with system Python 3.13. uv cannot install its own CPython there. Stay on 3.13. aiohttp stays pinned to the trixie package (3.11.16) so the Pi does not need a source build. That package is already installed. Do not pip or uv install aiohttp on the board, and do not remove it to "match" a venv.
 
 ## TODO

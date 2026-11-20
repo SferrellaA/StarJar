@@ -34,4 +34,4 @@ scoreboard.json
 !challenge_tree/**/*.swp
 
 # Vendored on purpose. Do not ignore these again:
-#   brython.js, brython_stdlib.js, and the figure images.
+#   brython.js, brython_stdlib.js, and challenge_tree/images/*.py.

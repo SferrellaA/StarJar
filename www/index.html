@@ -7,18 +7,20 @@
 <script src="/brython.js"></script>
 <script src="/brython_stdlib.js"></script>
 <style>
-body { font-family: Impact, sans-serif; background: #111; color: #f4f4f4; margin: 1.2rem; }
-h1 { letter-spacing: 0.04em; }
-aside { color: #bbb; font-family: sans-serif; }
+html { min-height: 100%; background-color: #e5f4f8; background-image: linear-gradient(148deg, #fbfdfe 0%, #e5f4f8 46%, #c7e6f1 100%); background-attachment: fixed; }
+body { margin: 2rem auto; max-width: 40rem; line-height: 1.45; font-family: Georgia, serif; color: #222; background: transparent; padding: 0 1rem 2rem; }
+h1 { font-family: Impact, sans-serif; letter-spacing: 0.03em; }
+aside { font-family: sans-serif; font-weight: 700; }
 li { margin: 0.4rem 0; }
-.scrollmenu { display: flex; gap: 1rem; overflow-x: auto; }
-figure { margin: 0; min-width: 8rem; }
-img { max-width: 16rem; background: #222; }
+.scrollmenu { display: flex; gap: 1rem; overflow-x: auto; align-items: flex-start; }
+figure { margin: 0; flex: 0 0 auto; text-align: center; }
+figcaption { color: #c40000; font-family: sans-serif; font-weight: 700; font-size: 0.9rem; max-width: 28rem; white-space: normal; }
+svg, img { background: #fff; border: 1px solid #bbb; }
 </style>
 </head>
 <body onload="brython()">
 <script type="text/python">
-from browser import document, ajax
+from browser import document, ajax, window
 from browser.html import *
 
 # list endpoint: /get/
@@ -34,6 +36,7 @@ arguments = UL()
 arguments <= LI("YEARS OF REVERSE ENGINEERING yet NO REAL-WORLD USE FOR understanding compiled CODE")
 arguments <= LI("sure we are not relaying information that could be used against us")
 arguments <= LI("security through obscurity")
+arguments <= LI("have you tried ghidra-mcp? did you install kali?")
 arguments <= LI("cease and desist")
 arguments <= LI("Title 49 Code of Federal Regulations parts § 1540.103(c) states: No person may make, or cause to be made any reproduction or alteration, for fraudulent purpose, of any report, record, security program, access medium, or identification medium issued under this subchapter. ")
 arguments <= LI("Computers were supposed to solve meath, not to be programmed")
@@ -49,25 +52,72 @@ document <= P() <= STRONG("(this is real computer science done by real computer 
 scrollmenu = DIV(Class="scrollmenu")
 document <= scrollmenu
 
+def mount_svg(markup, caption):
+    parser = window.DOMParser.new()
+    parsed = parser.parseFromString(markup, "image/svg+xml")
+    node = parsed.documentElement
+    if node is None:
+        return
+    tag = (node.tagName or "").lower()
+    if tag in ("parsererror", "html"):
+        return
+    figure = FIGURE()
+    figure <= node
+    figure <= FIGCAPTION(caption)
+    scrollmenu <= figure
+
+def mount_script(source):
+    ns = {"__name__": "figure"}
+    exec(source, ns)
+    draw = ns.get("svg")
+    if not callable(draw):
+        return
+    markup = draw()
+    if not isinstance(markup, str) or "<svg" not in markup:
+        return
+    caption = ns.get("CAPTION") or "real computer science"
+    mount_svg(markup, str(caption))
+
 def add_figures(req):
     try:
         if req.status != 200:
             return
-        body = req.text
+        body = req.text or ""
     except Exception:
         return
-    if not body:
-        return
-    for name in body.splitlines():
-        name = name.strip()
-        if not name or name.endswith("/") or name == ".gitkeep":
+    names = []
+    for raw in body.splitlines():
+        name = raw.strip()
+        if not name or "/" in name or name in (".", "..", ".gitkeep") or name.endswith("/"):
             continue
-        figure = FIGURE()
-        figure <= IMG(src="/get/images/" + name, alt="???")
-        figure <= FIGCAPTION("???")
-        scrollmenu <= figure
+        lower = name.lower()
+        if lower.endswith(".py"):
+            names.append(name)
+        elif lower.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")):
+            figure = FIGURE()
+            figure <= IMG(src="/get/images/" + name, alt="")
+            figure <= FIGCAPTION("real computer science")
+            scrollmenu <= figure
+
+    def load(i=0):
+        if i >= len(names):
+            return
+        name = names[i]
+
+        def done(resp, name=name, i=i):
+            try:
+                if resp.status == 200 and resp.text:
+                    mount_script(resp.text)
+            except Exception:
+                pass
+            load(i + 1)
+
+        ajax.get("/get/images/" + name, mode="text", oncomplete=done)
+
+    load()
 
 # figures are optional. an empty images directory must not throw.
+# list endpoint: /get/images
 ajax.get("/get/images", mode="text", oncomplete=add_figures)
 
 document <= P() <= STRONG("IF REVERSE ENGINEERING WAS REAL HOW COME NOBODY THOUGHT OF PUBLISHING SOURCE CODE")
