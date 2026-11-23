@@ -11,7 +11,12 @@ Python 3.13, same as the Pi. uv manages this checkout. It cannot install its own
 ```sh
 uv sync
 uv run pytest
+uv run pytest tests/test_web.py
 ```
+
+`scripts/serve-local.py` serves that same site on `127.0.0.1:8080` so a failing website test can be opened in a browser. It is a laptop fixture, not the jar.
+
+`scripts/morse-visual.py` plays one letter at a time on the strip and prints the expected mark in this terminal. Space advances. Ctrl+C fails the check. It needs the USB shell.
 
 ## Pi
 

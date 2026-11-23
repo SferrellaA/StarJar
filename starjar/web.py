@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
@@ -32,6 +33,8 @@ class AppState:
 
 
 STATE_KEY = web.AppKey("state", AppState)
+# Laptop serve only. The Pi leaves this unset so a player never sees a traceback.
+SHOW_ERRORS = web.AppKey("show_errors", bool)
 
 
 def make_app(state: AppState) -> web.Application:
@@ -61,6 +64,8 @@ async def guard(request: web.Request, handler):
     except (JailError, FileNotFoundError):
         return _taunt(TAUNT_PATH, status=404)
     except Exception:
+        if request.app.get(SHOW_ERRORS, False):
+            traceback.print_exc()
         return _taunt(TAUNT_PATH, status=404)
 
 

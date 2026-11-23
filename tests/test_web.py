@@ -4,8 +4,10 @@ from pathlib import Path
 
 from aiohttp.test_utils import TestClient, TestServer
 
-from starjar.secrets import Attempt
+from starjar.bench import LOCAL_CODE, LOCAL_SID, prepare_local
+from starjar.secrets import Attempt, reset_attempt
 from starjar.web import DEBUG_BODY, SECRET_PATH, TAUNT_CODE, TAUNT_PATH, AppState, make_app
+from tests.conftest import writable_run_dir
 
 
 def _state(tmp_path: Path, attempt: Attempt, trivia: Path | None = None) -> AppState:
@@ -146,6 +148,34 @@ def test_committed_tree_names_the_list_and_the_secret_path():
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     ]
     assert figures == []
+
+
+async def test_local_site_serves_the_fixture_without_the_pi(tmp_path: Path):
+    attempt_dir = writable_run_dir() / f"starjar-pytest-web-{os.getpid()}"
+    reset_attempt(attempt_dir)
+    scoreboard = tmp_path / "scoreboard.json"
+    try:
+        state = prepare_local(Path("."), attempt_dir, scoreboard)
+        assert state.attempt == Attempt(LOCAL_SID, LOCAL_CODE)
+        assert state.trivia.name == "trivia.example.toml"
+        app = make_app(state)
+        async with TestClient(TestServer(app)) as client:
+            page = await client.get("/")
+            assert page.status == 200
+            assert "brython.js" in await page.text()
+            debug = await client.get("/debug")
+            debug_body = await debug.text()
+            assert LOCAL_CODE not in debug_body
+            assert LOCAL_SID not in debug_body
+            wrong = await client.post(SECRET_PATH, data={"code": "NOPE"})
+            assert TAUNT_CODE.strip() in await wrong.text()
+            right = await client.post(SECRET_PATH, data={"code": LOCAL_CODE})
+            body = await right.text()
+            assert "Placeholder question one." in body
+            assert LOCAL_CODE not in body
+            assert "Traceback" not in body
+    finally:
+        reset_attempt(attempt_dir)
 
 
 def test_config_example_has_pin_18_and_no_secrets():

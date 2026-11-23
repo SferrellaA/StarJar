@@ -1,4 +1,7 @@
 import random
+import subprocess
+import sys
+from pathlib import Path
 
 from starjar.leds import FakeStrip, play
 from starjar.morse import (
@@ -9,7 +12,9 @@ from starjar.morse import (
     WORD_GAP,
     Signal,
     encode,
+    format_step,
     iter_signals,
+    on_pattern,
     phase_one_phrase,
 )
 from starjar.secrets import TOKEN_ALPHABET, new_code, new_sid
@@ -17,6 +22,11 @@ from starjar.secrets import TOKEN_ALPHABET, new_code, new_sid
 
 def test_table_covers_the_token_alphabet():
     assert set(TOKEN_ALPHABET) <= set(MORSE)
+    for letter in TOKEN_ALPHABET:
+        assert on_pattern(letter) == MORSE[letter]
+        assert format_step(letter) == f"{letter}  {MORSE[letter]}"
+    assert format_step("S") == "S  ..."
+    assert format_step("T") == "T  -"
 
 
 def test_standard_timing_for_s_and_t():
@@ -60,3 +70,22 @@ def test_generated_sid_cannot_keyerror():
         strip = FakeStrip(count=3)
         play(iter_signals(phase_one_phrase(sid)), strip, lambda _units: None)
         assert strip.frames
+
+
+def test_morse_visual_prints_the_encode_pattern_without_the_strip():
+    script = Path("scripts/morse-visual.py")
+    shown = subprocess.run(
+        [sys.executable, str(script), "--print-only", "--letters", "ST 0"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert shown.returncode == 0
+    assert shown.stdout == "S  ...\nT  -\n0  -----\n"
+    bad = subprocess.run(
+        [sys.executable, str(script), "--print-only", "--letters", "?"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert bad.returncode != 0

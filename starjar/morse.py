@@ -95,6 +95,29 @@ def encode(text: str) -> list[Signal]:
     return signals
 
 
+def on_pattern(text: str) -> str:
+    """Dots and dashes encode() will turn on. Gaps are not part of the mark."""
+    marks: list[str] = []
+    for signal in encode(text):
+        if not signal.on:
+            continue
+        if signal.units == DOT:
+            marks.append(".")
+        elif signal.units == DASH:
+            marks.append("-")
+        else:
+            raise ValueError(signal.units)
+    return "".join(marks)
+
+
+def format_step(letter: str) -> str:
+    """What the manual strip check prints for one letter."""
+    pattern = on_pattern(letter)
+    if len(letter) != 1 or pattern != MORSE[letter]:
+        raise KeyError(letter)
+    return f"{letter}  {pattern}"
+
+
 def iter_signals(phrase: Phrase) -> list[Signal]:
     signals = encode(phrase.lead) if phrase.lead else []
     if phrase.lead and phrase.token:
