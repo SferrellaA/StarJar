@@ -102,7 +102,7 @@ def _watch(args: argparse.Namespace, letters: str) -> int:
             print(format_step(letter), flush=True)
             player, pid = _start_letter(env, args, letter)
             _discard_typed()
-            _wait_space()
+            _wait_space(player)
             _stop_player(env, player, pid)
             player, pid = None, None
             if index == len(letters) - 1:
@@ -134,14 +134,25 @@ def _discard_typed() -> None:
         sel.close()
 
 
-def _wait_space() -> None:
-    while True:
-        key = os.read(sys.stdin.fileno(), 1)
-        if not key:
-            raise _Failed("terminal closed")
-        if key == b" ":
-            _drain_repeat()
-            return
+def _wait_space(player: subprocess.Popen[bytes]) -> None:
+    fd = sys.stdin.fileno()
+    sel = selectors.DefaultSelector()
+    sel.register(fd, selectors.EVENT_READ)
+    try:
+        while True:
+            if player.poll() is not None:
+                err = _stderr(player)
+                raise _Failed(err or "strip player exited")
+            if not sel.select(0.2):
+                continue
+            key = os.read(fd, 1)
+            if not key:
+                raise _Failed("terminal closed")
+            if key == b" ":
+                _drain_repeat()
+                return
+    finally:
+        sel.close()
 
 
 def _drain_repeat() -> None:
@@ -166,6 +177,8 @@ def _start_letter(
         [
             "sudo",
             "-n",
+            "env",
+            "PYTHONDONTWRITEBYTECODE=1",
             "python3",
             "-u",
             shlex.quote(script),
@@ -283,7 +296,7 @@ def _cached_env() -> dict[str, str]:
 def _upload(env: dict[str, str]) -> None:
     payload = base64.b64encode(_bundle()).decode("ascii")
     command = (
-        f"rm -rf {shlex.quote(DEST)} && mkdir -p {shlex.quote(DEST)} && "
+        f"sudo -n rm -rf {shlex.quote(DEST)} && mkdir -p {shlex.quote(DEST)} && "
         f"tr -d '\\r' | base64 -d | tar -xz -C {shlex.quote(DEST)}"
     )
     result = subprocess.run(
@@ -318,7 +331,7 @@ def _play_remote(args: argparse.Namespace) -> int:
     if args.path:
         sys.path.insert(0, args.path)
     _add_user_site()
-    from starjar.leds import OFF, open_strip, play
+    from starjar.leds import OFF, open_strip, paint, play
 
     letter = args.play
     format_step(letter)
@@ -350,7 +363,7 @@ def _play_remote(args: argparse.Namespace) -> int:
             play(signals, strip, sleep_units)
     finally:
         if strip is not None:
-            strip.fill(OFF)
+            paint(strip, OFF)
             strip.show()
     return 0
 

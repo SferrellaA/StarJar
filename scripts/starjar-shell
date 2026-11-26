@@ -176,7 +176,9 @@ try_hosts() {
 
 if is_wsl && command -v ssh.exe >/dev/null 2>&1; then
   ssh_bin=ssh.exe
-  win_home=$(cmd.exe /d /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+  # cmd.exe reads the script's stdin unless it is closed. That ate the
+  # morse-visual upload before ssh.exe could send it.
+  win_home=$(cmd.exe /d /c "echo %USERPROFILE%" </dev/null 2>/dev/null | tr -d '\r')
   identity=$(printf '%s/.ssh/starjar' "$win_home" | sed 's#\\#/#g')
   key_on_disk=$(wslpath -u "$win_home")/.ssh/starjar
 else

@@ -9,15 +9,20 @@ OFF = (0, 0, 0)
 
 @dataclass
 class FakeStrip:
+    """Records setPixelColor/show. Same methods as PixelStrip, no GPIO."""
+
     count: int
-    frames: list[tuple[tuple[int, int, int], ...]] = field(default_factory=list)
-    _current: list[tuple[int, int, int]] = field(init=False)
+    frames: list[tuple[int, ...]] = field(default_factory=list)
+    _current: list[int] = field(init=False)
 
     def __post_init__(self) -> None:
-        self._current = [OFF] * self.count
+        self._current = [0] * self.count
 
-    def fill(self, rgb: tuple[int, int, int]) -> None:
-        self._current = [rgb] * self.count
+    def numPixels(self) -> int:
+        return self.count
+
+    def setPixelColor(self, index: int, packed: int) -> None:
+        self._current[index] = packed
 
     def show(self) -> None:
         self.frames.append(tuple(self._current))
@@ -48,7 +53,18 @@ def open_strip(count: int, pin: int = 18, order: str = "RGB"):
     return strip
 
 
-def play(signals, strip: FakeStrip, sleep_units) -> None:
+def packed(rgb: tuple[int, int, int]) -> int:
+    red, green, blue = rgb
+    return (red << 16) | (green << 8) | blue
+
+
+def paint(strip, rgb: tuple[int, int, int]) -> None:
+    color = packed(rgb)
+    for index in range(strip.numPixels()):
+        strip.setPixelColor(index, color)
+
+
+def play(signals, strip, sleep_units) -> None:
     from starjar.morse import DOT
 
     for signal in signals:
@@ -58,6 +74,6 @@ def play(signals, strip: FakeStrip, sleep_units) -> None:
             color = DOT_COLOR
         else:
             color = DASH_COLOR
-        strip.fill(color)
+        paint(strip, color)
         strip.show()
         sleep_units(signal.units)
