@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Walk a person through one challenge. The jar must be plugged in over USB.
+
+The jar joins an open network. This script does not create that network.
+"""
+
+from __future__ import annotations
+
+import json
+import select
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SSH = ROOT / "scripts" / "starjar-ssh"
+
+
+def main() -> int:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        print("make demo needs this terminal", file=sys.stderr)
+        return 1
+    if not _reach():
+        print("The jar is not reachable over USB. Plug it in and retry.", file=sys.stderr)
+        return 1
+    if _ssh("systemctl is-active starjar.service").strip() != "active":
+        print("The jar is plugged in, but the challenge is not running.", file=sys.stderr)
+        print("Run make build first.", file=sys.stderr)
+        return 1
+
+    sid = _ssh("cat /run/starjar/sid").strip()
+    if not sid:
+        print("The jar has no attempt yet. Unplug it, plug it back in, and retry.", file=sys.stderr)
+        return 1
+
+    print("This is the operator walkthrough, over the USB cable.", flush=True)
+    print("The jar does not host the network. You create it.", flush=True)
+    print(flush=True)
+    status = _status()
+    if status.get("stage") != "phase1" and not status.get("associated"):
+        print("Starting the hunt disconnects the jar's Wi-Fi.", flush=True)
+        print("This USB shell stays up. A Wi-Fi login would die.", flush=True)
+        if not _ask("Start the hunt now?", default_yes=True):
+            print("The jar is not trying to connect.", flush=True)
+            return 0
+        _ssh("rm -f /run/starjar/hold")
+        warned = _ssh("/usr/local/bin/jump phase1")
+        if warned.stderr.strip():
+            print(warned.stderr.strip(), flush=True)
+        if warned.returncode != 0:
+            print("could not start the hunt", file=sys.stderr)
+            return 1
+
+    print(flush=True)
+    print("The jar is trying to connect to this open network:", flush=True)
+    print(flush=True)
+    print(f"    {sid}", flush=True)
+    print(flush=True)
+    print("Create that network yourself, with no password.", flush=True)
+    print("A phone hotspot often refuses an open network.", flush=True)
+    print("A spare router, or an access point on another computer, is the reliable way.", flush=True)
+    print("This computer can host it only if that does not take down the USB shell.", flush=True)
+    print(flush=True)
+    print("Waiting until the jar joins. Enter skips the wait. Ctrl-C stops.", flush=True)
+    joined = _wait_until_joined()
+    if not joined:
+        print("Stopped before the jar joined. The strip is still spelling that network name.", flush=True)
+        return 0
+
+    port = _port()
+    address = _wlan_address()
+    print(flush=True)
+    print("The jar joined. The strip is now spelling the phase-two code.", flush=True)
+    print("The code is not printed here.", flush=True)
+    if address:
+        print(f"On the network you created, open http://{address}:{port}", flush=True)
+    else:
+        print(f"On the network you created, the jar serves port {port}.", flush=True)
+        print("It does not have an IPv4 address on wlan0 yet.", flush=True)
+    print("A phone on that network can solve the page. The USB address is not the player path.", flush=True)
+    print("The page names a list. The challenge tree has a backup of the routes.", flush=True)
+    print("The strip's code is what that path wants.", flush=True)
+    print(flush=True)
+    print("After the code is accepted, the page says to ask someone who was there.", flush=True)
+    print("That set is /var/lib/starjar/trivia.toml on the jar. It is not in git.", flush=True)
+    print("Unplugging resets the attempt. The scoreboard stays.", flush=True)
+    print(flush=True)
+    input("Press enter to finish. ")
+    return 0
+
+
+def _reach() -> bool:
+    result = subprocess.run(
+        [str(SSH), "true"],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=40,
+    )
+    return result.returncode == 0
+
+
+def _ssh(command: str, timeout: int = 40) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(SSH), command],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def _text(command: str) -> str:
+    result = _ssh(command)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "remote command failed"
+        raise SystemExit(detail)
+    return result.stdout
+
+
+def _status() -> dict:
+    raw = _text("/usr/local/bin/jump status")
+    payload = json.loads(raw)
+    if not isinstance(payload, dict):
+        raise SystemExit("jump status")
+    return payload
+
+
+def _wait_until_joined() -> bool:
+    while True:
+        try:
+            status = _status()
+        except SystemExit:
+            status = {}
+        if status.get("associated") and status.get("stage") == "phase2":
+            return True
+        readable, _, _ = select.select([sys.stdin], [], [], 2)
+        if readable:
+            sys.stdin.readline()
+            return False
+
+
+def _port() -> str:
+    raw = _text(
+        "python3 -c 'import tomllib; "
+        "print(tomllib.load(open(\"/etc/starjar/config.toml\",\"rb\"))[\"web\"][\"port\"])'"
+    ).strip()
+    return raw or "8080"
+
+
+def _wlan_address() -> str:
+    text = _ssh("ip -4 -o addr show dev wlan0").stdout
+    for token in text.split():
+        if token.count(".") == 3 and "/" in token:
+            return token.split("/", 1)[0]
+    return ""
+
+
+def _ask(prompt: str, default_yes: bool) -> bool:
+    suffix = " [Y/n] " if default_yes else " [y/N] "
+    answer = input(prompt + suffix).strip().lower()
+    if not answer:
+        return default_yes
+    return answer in {"y", "yes"}
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        print("\nstopped", flush=True)
+        raise SystemExit(130) from None

@@ -1,0 +1,22 @@
+[Unit]
+Description=StarJar LED helper
+After=systemd-tmpfiles-setup.service
+Before=starjar.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/starjar
+Environment=PYTHONPATH=/opt/starjar
+Environment=STARJAR_CONFIG=/etc/starjar/config.toml
+Environment=STARJAR_LED_COUNT=50
+Environment=STARJAR_LED_PIN=18
+Environment=STARJAR_LED_ORDER=RGB
+ExecStart=/usr/bin/python3 -m starjar.leds_serve
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

@@ -129,9 +129,8 @@ Read-only root is still worth doing before the jar lives in the heritage room. I
 
 ## Order of work
 
-1. LED and Wi-Fi adapters, and `deploy/starjar.service` with `Restart=on-failure`. A restart rereads `/run/starjar` and does not roll a new attempt.
-2. Diagnostic jumps on the bench, including a phase-two test that does not drop SSH.
-3. A real phase-one hunt only after that is boring. It will disconnect the bench Wi-Fi.
+1. Diagnostic jumps on the bench, including a phase-two test that does not drop SSH.
+2. A real phase-one hunt only after that is boring. It will disconnect the bench Wi-Fi.
 
 ## Out of scope
 

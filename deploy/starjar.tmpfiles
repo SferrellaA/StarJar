@@ -1,0 +1,2 @@
+d /run/starjar 0750 star star -
+d /var/lib/starjar 0750 star star -

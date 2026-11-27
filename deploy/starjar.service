@@ -1,0 +1,21 @@
+[Unit]
+Description=StarJar challenge
+After=NetworkManager.service starjar-leds.service systemd-tmpfiles-setup.service
+Wants=NetworkManager.service starjar-leds.service
+
+[Service]
+Type=simple
+User=star
+Group=star
+WorkingDirectory=/opt/starjar
+Environment=PYTHONPATH=/opt/starjar
+Environment=PYTHONNOUSERSITE=1
+Environment=STARJAR_CONFIG=/etc/starjar/config.toml
+ExecStart=/usr/bin/python3 -m starjar
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=15
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+#!/bin/sh
+# Copy this checkout to the jar and enable the boot service.
+# The jar must be plugged in over USB. Does not reboot. Does not use cron.
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+ssh=$root/scripts/starjar-ssh
+
+if ! "$ssh" true; then
+  echo "the jar is not reachable over USB" >&2
+  exit 1
+fi
+
+tar=$(mktemp)
+trap 'rm -f "$tar"' EXIT
+tar -C "$root" -czf "$tar" \
+  --exclude '__pycache__' \
+  --exclude '*.pyc' \
+  starjar www challenge_tree trivia.example.toml config.example.toml deploy
+
+# Windows ssh.exe can insert CR. base64 keeps the archive intact.
+remote='rm -rf /tmp/starjar-build && mkdir -p /tmp/starjar-build && tr -d "\r" | base64 -d | tar -xz --warning=no-timestamp -C /tmp/starjar-build && sudo -n sh /tmp/starjar-build/deploy/install.sh'
+base64 -w0 "$tar" | "$ssh" "$remote"

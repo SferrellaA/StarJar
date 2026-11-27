@@ -30,6 +30,8 @@ class AppState:
     trivia: Path
     scoreboard: Path
     attempt: Attempt
+    # idle, phase1, phase1-dry, phase2, victory, leds. Not a secret.
+    stage: str = "phase2"
 
 
 STATE_KEY = web.AppKey("state", AppState)
@@ -70,6 +72,10 @@ async def guard(request: web.Request, handler):
 
 
 async def index(request: web.Request) -> web.StreamResponse:
+    state = _state(request)
+    if state.stage == "victory":
+        page = render_stage3(load_trivia(state.trivia))
+        return web.Response(text=page, content_type="text/html")
     return await _www(request, "index.html")
 
 
