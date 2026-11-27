@@ -13,7 +13,7 @@ uv sync
 make
 ```
 
-`make` and `make help` explain the commands. `make test` runs the unit tests, and the jar tests too if the jar is plugged in. `make build` installs the jar and enables the boot service. `make demo` walks a challenge. `make shell` opens the USB shell. `make clean` removes build artifacts here, and on the jar if it is plugged in.
+`make` and `make help` explain the commands. `make test` runs the unit tests, and the jar tests too if the jar is plugged in. `make build` installs the jar and enables the boot service. `make demo` walks a challenge. `make shell` opens the USB shell. `make clean` removes build artifacts here. On the jar, if it is plugged in, it uninstalls the challenge and clears shell history and logs. Trivia and the scoreboard stay.
 
 
 `scripts/serve-local.py` serves that same site on `127.0.0.1:8080` so a failing website test can be opened in a browser. It is a laptop fixture, not the jar.

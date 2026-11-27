@@ -1,0 +1,150 @@
+#!/bin/sh
+# Uninstall the challenge on the jar and clear the traces of using it.
+# Trivia, the scoreboard, operator networks, and the USB gadget stay.
+# Does not reboot. This returns after the jar has cleared the logs from
+# this cleanup itself.
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+ssh=$root/scripts/starjar-ssh
+
+rc=0
+msg=$("$ssh" true 2>&1 >/dev/null) || rc=$?
+if [ "$rc" -eq 253 ]; then
+  printf '%s\n' "$msg"
+  echo "skipped the jar cleanup"
+  exit 0
+fi
+if [ "$rc" -ne 0 ]; then
+  echo "jar is not plugged in; skipped the jar cleanup"
+  exit 0
+fi
+
+payload=$(mktemp)
+trap 'rm -f "$payload"' EXIT
+cat > "$payload" << 'EOF'
+#!/bin/sh
+# Run on the jar as root. Do not print attempt names or secrets.
+set -eu
+
+systemctl disable --now starjar.service starjar-leds.service >/dev/null 2>&1 || true
+systemctl stop starjar.service starjar-leds.service >/dev/null 2>&1 || true
+pkill -f 'python3 -m starjar' >/dev/null 2>&1 || true
+rm -f \
+  /etc/systemd/system/starjar.service \
+  /etc/systemd/system/starjar-leds.service \
+  /etc/tmpfiles.d/starjar.conf \
+  /etc/cron.d/starjar \
+  /usr/local/bin/jump \
+  /usr/local/sbin/starjar-radio
+rm -rf /opt/starjar /run/starjar /tmp/starjar-build /tmp/starjar-morse-visual
+systemctl daemon-reload
+systemctl reset-failed starjar.service starjar-leds.service >/dev/null 2>&1 || true
+
+# Attempt profiles are named with the SID. Delete them without printing it.
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli -t -f NAME connection show 2>/dev/null | while IFS= read -r name; do
+    case $name in
+      starjar-attempt-*)
+        nmcli connection delete "$name" >/dev/null 2>&1 || true
+        ;;
+    esac
+  done
+fi
+
+cat > /run/starjar-forget << 'END'
+#!/bin/sh
+set -eu
+
+wipe() {
+  for home in /root /home/*; do
+    [ -d "$home" ] || continue
+    rm -f \
+      "$home/.bash_history" \
+      "$home/.lesshst" \
+      "$home/.python_history" \
+      "$home/.viminfo" \
+      "$home/.wget-hsts" \
+      "$home/.mysql_history" \
+      "$home/.sqlite_history" \
+      "$home/.sudo_as_admin_successful"
+  done
+
+  for f in \
+    /var/log/wtmp \
+    /var/log/wtmp.1 \
+    /var/log/btmp \
+    /var/log/btmp.1 \
+    /var/log/lastlog \
+    /var/log/cloud-init.log \
+    /var/log/cloud-init-output.log \
+    /var/log/dpkg.log \
+    /var/log/apt/history.log \
+    /var/log/apt/term.log \
+    /var/log/starjar-usb-gadget.log \
+    /var/log/alternatives.log \
+    /var/log/bootstrap.log
+  do
+    [ -f "$f" ] || continue
+    : > "$f" || true
+  done
+  rm -f \
+    /var/log/apt/history.log.*.gz \
+    /var/log/apt/term.log.*.gz \
+    /var/log/apt/eipp.log.xz \
+    /var/log/dpkg.log.* \
+    /var/log/cloud-init.log.* \
+    /var/log/cloud-init-output.log.* \
+    /var/log/*.gz \
+    /var/log/wtmp.db-journal \
+    /var/log/wtmp.db-wal \
+    /var/log/wtmp.db-shm
+
+  if [ -f /var/log/wtmp.db ]; then
+    python3 -c 'import sqlite3; c=sqlite3.connect("/var/log/wtmp.db"); c.execute("DELETE FROM wtmp"); c.commit()' || true
+  fi
+
+  systemctl stop systemd-journald.socket systemd-journald-dev-ctl.socket systemd-journald-audit.socket systemd-journald >/dev/null 2>&1 || true
+  mkdir -p /run/log/journal /var/log/journal
+  find /run/log/journal /var/log/journal -mindepth 1 -depth -exec rm -rf {} + || true
+  systemctl start systemd-journald.socket systemd-journald >/dev/null 2>&1 || true
+}
+
+case ${1:-} in
+  now) wipe ;;
+  later)
+    sleep 3
+    wipe
+    rm -f /run/starjar-forget
+    ;;
+  *) exit 1 ;;
+esac
+END
+chmod 700 /run/starjar-forget
+sh /run/starjar-forget now
+
+# A live shell would write its history back on the way out. Kill it, then
+# start a fresh console so the board looks newly powered on.
+ps -eo pid=,tty=,comm= | while read -r pid tty comm; do
+  case $comm in
+    bash|-bash) ;;
+    *) continue ;;
+  esac
+  case $tty in
+    "?"|"") continue ;;
+  esac
+  kill -9 "$pid" || true
+done
+systemctl restart serial-getty@ttyGS0.service >/dev/null 2>&1 || true
+
+# Leave the ssh session before the last wipe, or this login stays in the journal.
+# A system unit survives that session. setsid is the fallback.
+if ! systemd-run --quiet --collect --no-block /bin/sh /run/starjar-forget later >/dev/null 2>&1; then
+  trap '' HUP
+  setsid /bin/sh /run/starjar-forget later </dev/null >/dev/null 2>&1 &
+fi
+EOF
+
+base64 -w0 "$payload" | "$ssh" 'tr -d "\r" | base64 -d | sudo -n sh'
+# The jar clears this session's own log lines after the shell returns.
+sleep 6

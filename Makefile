@@ -10,7 +10,7 @@ help:
 		'make shell  open a shell on the jar over the USB cable. If the jar is visible but probably restarting, say so instead of a raw ssh failure.' \
 		'make demo   walk through a challenge. The jar must be plugged in. It prints the open network the jar is trying to join; you create that network yourself. If the jar is visible but probably restarting, say so and stop.' \
 		'make build  copy this checkout to the jar and enable starjar.service so it starts on boot. That is systemd, not cron. If the jar is visible but probably restarting, say so and stop.' \
-		'make clean  remove local build artifacts. If the jar is plugged in, remove the same kind of artifacts there. If it is visible but probably restarting, say so and skip that. Does not remove the installed service, trivia, or scoreboard.'
+		'make clean  remove local build artifacts. If the jar is plugged in, uninstall the challenge so the next power cycle does not start it, and clear shell history and logs there. Trivia and the scoreboard stay. make build installs it again. If the jar is visible but probably restarting, say so and skip that.'
 
 test:
 	uv run pytest
@@ -37,12 +37,4 @@ clean:
 	find . -path ./.venv -prune -o -path ./.git -prune -o -type d -name __pycache__ -exec rm -rf {} +
 	find . -path ./.venv -prune -o -path ./.git -prune -o -type d -name .pytest_cache -exec rm -rf {} +
 	rm -rf .mypy_cache .ruff_cache build dist *.egg-info
-	@rc=0; msg=$$(scripts/starjar-ssh true 2>&1 >/dev/null) || rc=$$?; \
-	if [ $$rc -eq 0 ]; then \
-		scripts/starjar-ssh 'sudo -n sh -c "if [ -d /opt/starjar ]; then find /opt/starjar -depth -type d -name __pycache__ -exec rm -rf {} +; fi; rm -rf /tmp/starjar-build /tmp/starjar-morse-visual"'; \
-	elif [ $$rc -eq 253 ]; then \
-		printf '%s\n' "$$msg"; \
-		echo "skipped the jar cleanup"; \
-	else \
-		echo "jar is not plugged in; skipped the jar cleanup"; \
-	fi
+	scripts/starjar-clean

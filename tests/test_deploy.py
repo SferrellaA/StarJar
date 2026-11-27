@@ -21,3 +21,21 @@ def test_boot_unit_restarts_and_is_not_cron():
         assert f"{name}:" in makefile
     assert "jar_tests" in makefile
     assert "jar:" not in makefile
+
+
+def test_clean_uninstalls_the_challenge_and_clears_traces():
+    script = Path("scripts/starjar-clean").read_text(encoding="utf-8")
+    makefile = Path("Makefile").read_text(encoding="utf-8")
+    help_text = makefile.split("help:")[1].split("test:")[0]
+    assert "scripts/starjar-clean" in makefile
+    assert "Does not remove the installed service" not in makefile
+    assert "scoreboard" in help_text
+    assert "Trivia" in help_text
+    assert "systemctl disable --now starjar.service starjar-leds.service" in script
+    assert "rm -rf /opt/starjar" in script
+    assert ".bash_history" in script
+    assert "systemd-journald" in script
+    assert "starjar-attempt-" in script
+    assert "/var/lib/starjar" not in script
+    assert "starjar-usb-gadget.service" not in script
+    assert not any(line.strip().startswith("reboot") for line in script.splitlines())
