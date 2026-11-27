@@ -6,15 +6,13 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from starjar.bench import LOCAL_CODE, LOCAL_SID, prepare_local
 from starjar.secrets import Attempt, reset_attempt
-from starjar.web import SECRET_PATH, TAUNT_CODE, TAUNT_PATH, AppState, debug_text, make_app
+from starjar.web import SECRET_PATH, TAUNT_CODE, TAUNT_PATH, VALID_PAGES, AppState, debug_text, make_app
 from tests.conftest import writable_run_dir
 
 
 def _state(tmp_path: Path, attempt: Attempt, trivia: Path | None = None) -> AppState:
     root = tmp_path / "challenge_tree"
     (root / "images").mkdir(parents=True)
-    (root / "robots.txt").write_text("Disallow: /debrief\n", encoding="utf-8")
-    (root / "routes.py.bak").write_text("POST /debrief\n", encoding="utf-8")
     www = tmp_path / "www"
     www.mkdir()
     (www / "index.html").write_text("brython.js\n/get/\n", encoding="utf-8")
@@ -74,9 +72,20 @@ async def test_jail_over_http_and_scoreboard_is_not_the_reader(tmp_path: Path):
     async with TestClient(TestServer(app)) as client:
         listing = await client.get("/get/")
         listed = await listing.text()
-        assert "routes.py.bak" in listed
         assert "images/" in listed
+        assert "routes.py.bak" not in listed
+        assert "robots.txt" not in listed
+        assert SECRET_PATH not in listed
         assert attempt.code not in listed
+
+        hint = await client.get("/get/*")
+        hint_body = await hint.text()
+        assert hint.status == 400
+        assert "Valid pages:" in hint_body
+        for page in VALID_PAGES:
+            assert page in hint_body
+        assert attempt.code not in hint_body
+        assert attempt.sid not in hint_body
 
         leak = await client.get("/get/leak")
         leak_body = await leak.text()
@@ -86,8 +95,16 @@ async def test_jail_over_http_and_scoreboard_is_not_the_reader(tmp_path: Path):
         assert "Traceback" not in leak_body
 
         missing = await client.get("/get/images/nope.png")
+        missing_body = await missing.text()
         assert missing.status == 404
-        assert "Traceback" not in await missing.text()
+        assert SECRET_PATH not in missing_body
+        assert "Valid pages:" not in missing_body
+        assert "Traceback" not in missing_body
+
+        robots = await client.get("/robots.txt")
+        robots_body = await robots.text()
+        assert robots.status == 404
+        assert SECRET_PATH not in robots_body
 
         images = await client.get("/get/images")
         assert images.status == 200
@@ -152,10 +169,9 @@ def test_committed_tree_names_the_list_and_the_secret_path():
     assert version.startswith("3.15.0\n")
     assert Path("www/brython.js").stat().st_size > 100_000
     assert Path("www/brython_stdlib.js").stat().st_size > 100_000
-    bak = Path("challenge_tree/routes.py.bak").read_text(encoding="utf-8")
-    robots = Path("challenge_tree/robots.txt").read_text(encoding="utf-8")
-    assert SECRET_PATH in bak
-    assert SECRET_PATH in robots
+    assert not Path("challenge_tree/routes.py.bak").exists()
+    assert not Path("challenge_tree/robots.txt").exists()
+    assert SECRET_PATH in VALID_PAGES
     images = Path("challenge_tree/images")
     figures = [
         path

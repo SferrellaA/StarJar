@@ -88,9 +88,8 @@ Figures are Python generators in `challenge_tree/images/*.py`. The page loads th
 Sloppy on purpose, jailed for real. Several ways through, none of them a shell:
 
 - View source shows Brython and names a list endpoint.
-- Directory listing of the challenge tree.
-- A backup or editor-swap file in that tree that shows the routes, including the secret path.
-- `robots.txt` overshares.
+- Directory listing of the challenge tree. It does not name the secret path.
+- `/get/*` returns a 400 and lists the valid pages, including the secret path. No `robots.txt`. No routes backup.
 - A debug route that names the stage. In phase two it says the jar is now spelling the code. It does not contain the code.
 - The secret path accepts only the code on the LEDs.
 

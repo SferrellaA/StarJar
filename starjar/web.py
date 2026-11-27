@@ -19,7 +19,9 @@ from starjar.trivia import load_trivia, render_stage3
 SECRET_PATH = "/debrief"
 TAUNT_PATH = "Nothing in the jar by that name."
 TAUNT_CODE = "That is not what the jar is spelling."
-TEXT_SUFFIXES = {".bak", ".py", ".txt", ".toml", ".md", ".html", ".css"}
+TEXT_SUFFIXES = {".py", ".txt", ".toml", ".md", ".html", ".css"}
+# Concrete pages only. The glob is the hint, not a page.
+VALID_PAGES = ("/", "/debug", SECRET_PATH, "/scoreboard", "/get/", "/get/images")
 
 
 @dataclass
@@ -44,7 +46,6 @@ def make_app(state: AppState) -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/brython.js", www_file("brython.js"))
     app.router.add_get("/brython_stdlib.js", www_file("brython_stdlib.js"))
-    app.router.add_get("/robots.txt", robots)
     app.router.add_get("/debug", debug)
     app.router.add_get(SECRET_PATH, debrief_form)
     app.router.add_post(SECRET_PATH, debrief_submit)
@@ -83,13 +84,6 @@ def www_file(name: str):
         return await _www(request, name)
 
     return handler
-
-
-async def robots(request: web.Request) -> web.Response:
-    path = _state(request).challenge_tree / "robots.txt"
-    if not path.is_file():
-        return _taunt(TAUNT_PATH, status=404)
-    return web.Response(text=path.read_text(encoding="utf-8"), content_type="text/plain")
 
 
 async def debug(request: web.Request) -> web.Response:
@@ -143,7 +137,10 @@ async def listing_root(request: web.Request) -> web.Response:
 
 
 async def read_tail(request: web.Request) -> web.StreamResponse:
-    return _serve_tree(request, request.match_info.get("path", ""))
+    requested = request.match_info.get("path", "")
+    if requested == "*":
+        return _pages_error()
+    return _serve_tree(request, requested)
 
 
 async def scoreboard_route(request: web.Request) -> web.Response:
@@ -189,6 +186,11 @@ async def _www(request: web.Request, name: str) -> web.StreamResponse:
 
 def _state(request: web.Request) -> AppState:
     return request.app[STATE_KEY]
+
+
+def _pages_error() -> web.Response:
+    text = "Valid pages:\n" + "\n".join(VALID_PAGES) + "\n"
+    return web.Response(status=400, text=text, content_type="text/plain")
 
 
 def _taunt(text: str, status: int) -> web.Response:
