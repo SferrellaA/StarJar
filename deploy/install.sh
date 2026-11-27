@@ -1,9 +1,9 @@
 #!/bin/sh
 # Install the tree in /opt/starjar and enable the boot service. Not cron.
-# Usage, on the jar, as root: deploy/install.sh /tmp/starjar-build
+# Usage, on the jar, as root: deploy/install.sh /tmp/starjar-install
 set -eu
 
-src=${1:-/tmp/starjar-build}
+src=${1:-/tmp/starjar-install}
 if [ ! -d "$src/starjar" ] || [ ! -d "$src/www" ] || [ ! -d "$src/challenge_tree" ]; then
   echo "install source is incomplete" >&2
   exit 1
@@ -18,7 +18,7 @@ chown -R star:star /opt/starjar
 install -d -o root -g star -m 0755 /etc/starjar
 if [ ! -f /etc/starjar/config.toml ]; then
   cat > /etc/starjar/config.toml <<'EOF'
-# Installed by scripts/starjar-build. Not an attempt secret.
+# Installed by scripts/starjar-install. Not an attempt secret.
 
 [leds]
 count = 50

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Walk a person through one challenge. The jar must be plugged in over USB.
 
-The jar joins an open network. This script does not create that network.
-Leaving this script stops the jar. Unplug is still the attempt reset.
+If the challenge is not running, this installs it first. The jar joins an open
+network. This script does not create that network. Leaving this script, by
+any path, runs make clean. Unplug is still the attempt reset.
 """
 
 from __future__ import annotations
@@ -11,10 +12,12 @@ import json
 import select
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SSH = ROOT / "scripts" / "starjar-ssh"
+INSTALL = ROOT / "scripts" / "starjar-install"
 _hunting = False
 
 
@@ -24,34 +27,22 @@ def main() -> int:
         return 1
     if not _reach():
         return 1
-    interrupted = False
+    code = 1
     try:
-        return _walk()
+        code = _walk()
     except KeyboardInterrupt:
-        interrupted = True
-        return 130
-    finally:
-        if _hunting:
-            idle = _stop_jar()
-            if interrupted:
-                print("\nstopped. The jar is idle." if idle else "\nstopped.", flush=True)
-            elif idle:
-                print("The jar is idle.", flush=True)
-        elif interrupted:
-            print("\nstopped", flush=True)
+        print("\nstopped", flush=True)
+        code = 130
+    if not _clean():
+        return code if code != 0 else 1
+    return code
 
 
 def _walk() -> int:
     global _hunting
-    if _ssh("systemctl is-active starjar.service").stdout.strip() != "active":
-        print("The jar is plugged in, but the challenge is not running.", file=sys.stderr)
-        print("Run make build first.", file=sys.stderr)
-        return 1
-
-    sid = _ssh("cat /run/starjar/sid").stdout.strip()
-    if not sid:
-        print("The jar has no attempt yet. Unplug it, plug it back in, and retry.", file=sys.stderr)
-        return 1
+    code, sid = _ensure_challenge()
+    if code != 0:
+        return code
 
     print("This is the operator walkthrough, over the USB cable.", flush=True)
     print("The jar does not host the network. You create it.", flush=True)
@@ -84,10 +75,7 @@ def _walk() -> int:
     print("A spare router, or an access point on another computer, is the reliable way.", flush=True)
     print("This computer can host it only if that does not take down the USB shell.", flush=True)
     print(flush=True)
-    if _hunting:
-        print("Waiting until the jar joins. Enter or Ctrl-C stops the jar.", flush=True)
-    else:
-        print("Waiting until the jar joins. Enter skips the wait. Ctrl-C stops.", flush=True)
+    print("Waiting until the jar joins. Enter or Ctrl-C stops and cleans the jar.", flush=True)
     joined = _wait_until_joined()
     if not joined:
         print("Stopped before the jar joined.", flush=True)
@@ -114,24 +102,61 @@ def _walk() -> int:
     print("After the code is accepted, the page says to ask someone who was there.", flush=True)
     print("That set is /var/lib/starjar/trivia.toml on the jar. It is not in git.", flush=True)
     print("Unplugging resets the attempt. The scoreboard stays.", flush=True)
+    print("Ending this walkthrough uninstalls the challenge and clears the jar.", flush=True)
     print(flush=True)
-    input("Press enter to stop the jar. ")
+    input("Press enter to stop and clean the jar. ")
     return 0
 
 
-def _stop_jar() -> bool:
-    """Idle, hold, and restart. Hold keeps the next process from hunting again."""
+def _ensure_challenge() -> tuple[int, str]:
+    """Return an exit code and the SID. Install only if the challenge is down."""
 
-    print("Stopping the jar.", flush=True)
-    result = _ssh(
-        "touch /run/starjar/hold; "
-        "/usr/local/bin/jump idle; "
-        "sudo -n systemctl restart starjar.service",
-        timeout=45,
-    )
+    if _running():
+        sid = _sid()
+        if sid:
+            return 0, sid
+    print("Installing the challenge.", flush=True)
+    installed = subprocess.run([str(INSTALL)], check=False)
+    if installed.returncode != 0:
+        if installed.returncode != 253:
+            print("could not install the challenge", file=sys.stderr)
+        return installed.returncode, ""
+    sid = _wait_sid()
+    if not sid:
+        print("The challenge did not come up.", file=sys.stderr)
+        return 1, ""
+    return 0, sid
+
+
+def _running() -> bool:
+    return _ssh("systemctl is-active --quiet starjar.service").returncode == 0
+
+
+def _sid() -> str:
+    result = _ssh("cat /run/starjar/sid")
     if result.returncode != 0:
-        detail = result.stderr.strip() or "could not stop the jar"
-        print(detail, file=sys.stderr)
+        return ""
+    return result.stdout.strip()
+
+
+def _wait_sid() -> str:
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        sid = _sid()
+        if sid:
+            return sid
+        time.sleep(0.4)
+    return ""
+
+
+def _clean() -> bool:
+    """Turn the strip off, then make clean. Every demo exit comes through here."""
+
+    print("Cleaning the jar.", flush=True)
+    _ssh("/usr/local/bin/jump idle", timeout=20)
+    result = subprocess.run(["make", "-C", str(ROOT), "clean"], check=False)
+    if result.returncode != 0:
+        print("could not clean the jar", file=sys.stderr)
         return False
     return True
 

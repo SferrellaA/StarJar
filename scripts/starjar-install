@@ -24,5 +24,5 @@ tar -C "$root" -czf "$tar" \
   starjar www challenge_tree trivia.example.toml config.example.toml deploy
 
 # Windows ssh.exe can insert CR. base64 keeps the archive intact.
-remote='rm -rf /tmp/starjar-build && mkdir -p /tmp/starjar-build && tr -d "\r" | base64 -d | tar -xz --warning=no-timestamp -C /tmp/starjar-build && sudo -n sh /tmp/starjar-build/deploy/install.sh'
+remote='rm -rf /tmp/starjar-install && mkdir -p /tmp/starjar-install && tr -d "\r" | base64 -d | tar -xz --warning=no-timestamp -C /tmp/starjar-install && sudo -n sh /tmp/starjar-install/deploy/install.sh'
 base64 -w0 "$tar" | "$ssh" "$remote"

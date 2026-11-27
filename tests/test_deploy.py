@@ -17,8 +17,14 @@ def test_boot_unit_restarts_and_is_not_cron():
     assert "uv " not in install
     makefile = Path("Makefile").read_text(encoding="utf-8")
     assert "morse-visual" not in makefile.split("help:")[1].split("test:")[0]
-    for name in ("help", "test", "shell", "demo", "build", "clean"):
+    for name in ("help", "test", "shell", "demo", "install", "clean"):
         assert f"{name}:" in makefile
+    assert "\nbuild:" not in makefile
+    demo = Path("scripts/starjar-demo").read_text(encoding="utf-8")
+    assert "starjar-install" in demo
+    assert "make build" not in demo
+    assert '["make", "-C", str(ROOT), "clean"]' in demo
+    assert "def _stop_jar" not in demo
     assert "jar_tests" in makefile
     assert "jar:" not in makefile
 

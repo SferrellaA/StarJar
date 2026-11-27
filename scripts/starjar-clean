@@ -37,7 +37,7 @@ rm -f \
   /etc/cron.d/starjar \
   /usr/local/bin/jump \
   /usr/local/sbin/starjar-radio
-rm -rf /opt/starjar /run/starjar /tmp/starjar-build /tmp/starjar-morse-visual
+rm -rf /opt/starjar /run/starjar /tmp/starjar-build /tmp/starjar-install /tmp/starjar-morse-visual
 systemctl daemon-reload
 systemctl reset-failed starjar.service starjar-leds.service >/dev/null 2>&1 || true
 
