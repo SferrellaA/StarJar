@@ -8,6 +8,10 @@
 #
 # Key is ~/.ssh/starjar, not in git. With no key, Linux ssh tries the agent
 # and the default keys. Extra arguments are a remote command, not a shell.
+#
+# Exit 253: the USB gadget is visible, but ssh is not up. That is a restart.
+# Boot loads g_serial immediately; the NCM gadget waits for NetworkManager,
+# so the host can see the Pi for minutes before this shell works.
 set -eu
 
 user="${STARJAR_SSH_USER:-star}"
@@ -43,7 +47,7 @@ usb_id_of() {
 is_starjar_usb() {
   id=$(usb_id_of "$1" 2>/dev/null || true)
   case $id in
-    1d6b:0104:*|0525:a4a7:*|*:starjar) return 0 ;;
+    1d6b:0104:*|0525:a4a6:*|0525:a4a7:*|*:starjar) return 0 ;;
   esac
   return 1
 }
@@ -162,16 +166,80 @@ ssh_one() {
 
 try_hosts() {
   last=255
+  : >"$ssh_err"
   for host in $hosts; do
     set +e
-    ssh_one "$host" "$@"
+    ssh_one "$host" "$@" 2>"$ssh_one_err"
     last=$?
     set -e
     if [ "$last" -ne 255 ]; then
+      cat "$ssh_one_err" >&2
       return "$last"
     fi
+    cat "$ssh_one_err" >>"$ssh_err"
   done
   return 255
+}
+
+# g_serial (0525:a4a6 or a4a7) is what the host sees for most of a boot.
+# 1d6b:0104 is the NCM gadget, after NetworkManager.
+jar_visible() {
+  if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
+    if powershell.exe -NoProfile -NonInteractive -Command 'if (Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -match "VID_1D6B&PID_0104|VID_0525&PID_A4A7|VID_0525&PID_A4A6" }) { exit 0 } else { exit 1 }' </dev/null >/dev/null 2>&1; then
+      return 0
+    fi
+    return 1
+  fi
+  if find_net >/dev/null 2>&1; then
+    return 0
+  fi
+  if find_tty >/dev/null 2>&1; then
+    return 0
+  fi
+  for dev in /sys/bus/usb/devices/*; do
+    if is_starjar_usb "$dev"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+ssh_failed_auth() {
+  [ -s "$ssh_err" ] || return 1
+  grep -qi \
+    -e 'permission denied' \
+    -e 'host key verification failed' \
+    -e 'REMOTE HOST IDENTIFICATION HAS CHANGED' \
+    "$ssh_err"
+}
+
+dump_ssh_err() {
+  if [ -s "$ssh_err" ]; then
+    cat "$ssh_err" >&2
+  fi
+}
+
+# 253, not 255: callers that hide ssh noise still have to say restarting,
+# and must not say the jar is unplugged.
+explain_ssh_failure() {
+  if ssh_failed_auth; then
+    dump_ssh_err
+    exit 255
+  fi
+  if jar_visible; then
+    printf '%s\n' 'the jar is visible, but it is probably restarting. that takes a few minutes.' >&2
+    exit 253
+  fi
+  dump_ssh_err
+  if is_wsl; then
+    printf 'wired ssh failed from WSL\n' >&2
+    exit 255
+  fi
+  if [ "$#" -eq 0 ]; then
+    serial_shell "$@"
+  fi
+  printf 'could not open a wired shell\n' >&2
+  exit 255
 }
 
 if is_wsl && command -v ssh.exe >/dev/null 2>&1; then
@@ -187,6 +255,10 @@ else
   key_on_disk=$identity
 fi
 
+ssh_err=$(mktemp)
+ssh_one_err=$(mktemp)
+trap 'rm -f "$ssh_err" "$ssh_one_err"' EXIT
+
 if [ ! -e "$key_on_disk" ]; then
   if is_wsl; then
     printf 'missing key: %s\n' "$identity" >&2
@@ -200,28 +272,18 @@ if [ ! -e "$key_on_disk" ]; then
   fi
 fi
 
+rc=0
 try_hosts "$@" || rc=$?
-rc=${rc:-0}
 if [ "$rc" -ne 255 ]; then
   exit "$rc"
 fi
 
-if is_wsl; then
-  printf 'wired ssh failed from WSL\n' >&2
-  exit 255
-fi
-
-if prepare_linux_link; then
+if ! is_wsl && prepare_linux_link; then
+  rc=0
   try_hosts "$@" || rc=$?
-  rc=${rc:-0}
   if [ "$rc" -ne 255 ]; then
     exit "$rc"
   fi
 fi
 
-if [ "$#" -eq 0 ]; then
-  serial_shell
-fi
-
-printf 'could not open a wired shell\n' >&2
-exit 255
+explain_ssh_failure "$@"

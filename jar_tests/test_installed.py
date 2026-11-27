@@ -167,6 +167,12 @@ def jar_plugged_in():
         text=True,
         timeout=40,
     )
+    if result.returncode == 253:
+        pytest.fail(
+            result.stderr.strip()
+            or "the jar is visible, but it is probably restarting. that takes a few minutes.",
+            pytrace=False,
+        )
     if result.returncode != 0:
         pytest.fail(
             "the jar is not reachable over USB\n" + result.stderr.strip(),

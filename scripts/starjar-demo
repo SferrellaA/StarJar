@@ -23,7 +23,6 @@ def main() -> int:
         print("make demo needs this terminal", file=sys.stderr)
         return 1
     if not _reach():
-        print("The jar is not reachable over USB. Plug it in and retry.", file=sys.stderr)
         return 1
     interrupted = False
     try:
@@ -143,10 +142,22 @@ def _reach() -> bool:
         check=False,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
         timeout=40,
     )
-    return result.returncode == 0
+    if result.returncode == 0:
+        return True
+    # 253: USB gadget is up, ssh is not. starjar-shell already wrote the sentence.
+    if result.returncode == 253:
+        print(
+            result.stderr.strip()
+            or "the jar is visible, but it is probably restarting. that takes a few minutes.",
+            file=sys.stderr,
+        )
+        return False
+    print("The jar is not reachable over USB. Plug it in and retry.", file=sys.stderr)
+    return False
 
 
 def _ssh(command: str, timeout: int = 40) -> subprocess.CompletedProcess[str]:

@@ -22,7 +22,7 @@ make
 
 ## Pi
 
-Wired shell, from WSL or a Linux machine: `scripts/starjar-shell`. On WSL it calls Windows `ssh.exe`, because WSL cannot see the USB NIC. On Linux it brings that NIC up and does not add a default route. User `star`, key `~/.ssh/starjar` (not in git). `scripts/starjar-ssh` is the same script, for a remote command. `scripts/starjar-usb-gadget.sh` is the Pi-side unit; it is already installed there.
+Wired shell, from WSL or a Linux machine: `scripts/starjar-shell`. On WSL it calls Windows `ssh.exe`, because WSL cannot see the USB NIC. On Linux it brings that NIC up and does not add a default route. User `star`, key `~/.ssh/starjar` (not in git). `scripts/starjar-ssh` is the same script, for a remote command. `scripts/starjar-usb-gadget.sh` is the Pi-side unit; it is already installed there. A restart takes a few minutes. If the USB gadget is visible and ssh is not up yet, the shell says the jar is probably restarting instead of calling it unplugged.
 
 Raspbian 13, system Python 3.13. aiohttp is the trixie package, `python3-aiohttp` 3.11.16, already installed. Do not `uv python install` there, and do not pip a newer aiohttp over it.
 

@@ -6,7 +6,12 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 ssh=$root/scripts/starjar-ssh
 
-if ! "$ssh" true; then
+rc=0
+"$ssh" true || rc=$?
+if [ "$rc" -eq 253 ]; then
+  exit 253
+fi
+if [ "$rc" -ne 0 ]; then
   echo "the jar is not reachable over USB" >&2
   exit 1
 fi
