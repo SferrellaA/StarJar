@@ -91,7 +91,7 @@ Sloppy on purpose, jailed for real. Several ways through, none of them a shell:
 - Directory listing of the challenge tree.
 - A backup or editor-swap file in that tree that shows the routes, including the secret path.
 - `robots.txt` overshares.
-- A debug route that says the jar is spelling the code, and does not contain it.
+- A debug route that names the stage. In phase two it says the jar is now spelling the code. It does not contain the code.
 - The secret path accepts only the code on the LEDs.
 
 `realpath` the file reads. Reject `..`, absolute paths, and symlinks that leave the challenge tree. An open read would expose NetworkManager profiles and `/home/star/.ssh` to whoever is on the attempt network. Wrong guesses get a taunt, not a traceback.

@@ -1,5 +1,5 @@
 from starjar.mode import Profile, Snapshot
-from starjar.service import command_result, radio_wanted, scrub, wait_for_mode
+from starjar.service import command_result, phase1_still, radio_wanted, scrub, wait_for_mode
 
 
 def test_scrub_removes_attempt_secrets():
@@ -16,6 +16,13 @@ def test_only_phase1_brings_up_the_client():
     assert radio_wanted("phase2") is False
     assert radio_wanted("idle") is False
     assert radio_wanted("victory") is False
+
+
+def test_a_stage_change_cancels_an_in_flight_hunt():
+    assert phase1_still("phase1", 3, 3) is True
+    assert phase1_still("idle", 4, 3) is False
+    assert phase1_still("phase1", 4, 3) is False
+    assert phase1_still("phase2", 3, 3) is False
 
 
 def test_status_has_no_secret_fields():

@@ -41,6 +41,12 @@ def radio_wanted(stage: str) -> bool:
     return stage == "phase1"
 
 
+def phase1_still(stage: str, generation: int, seen: int) -> bool:
+    """False once jump idle, or any other stage change, landed during a connect."""
+
+    return stage == "phase1" and generation == seen
+
+
 def wait_for_mode(collect, sleep, monotonic, timeout: float = SETTLE_S, cap: float = ACTIVATING_CAP_S) -> str:
     """diagnostic or challenge. Still activating after the short timeout is not settled."""
 
@@ -218,24 +224,41 @@ def _one_command(conn: socket.socket, box: Box) -> None:
 
 def _radio(box: Box, helper: RadioHelper) -> None:
     while not box.stop.is_set():
-        _mode, stage, _associated, _gen = box.snapshot()
+        _mode, stage, _associated, gen = box.snapshot()
         if not radio_wanted(stage):
             box.wait(0.5)
             continue
         try:
             helper.ensure()
-            if helper.joined():
+            if _phase1(box, gen) and helper.joined():
                 box.set_associated(True)
                 box.set_stage("phase2")
+                continue
+            if not _phase1(box, gen):
+                _drop_attempt(helper)
                 continue
             helper.up()
-            if helper.joined():
+            if _phase1(box, gen) and helper.joined():
                 box.set_associated(True)
                 box.set_stage("phase2")
                 continue
+            if not _phase1(box, gen):
+                _drop_attempt(helper)
         except RadioError:
             _log("wlan0 connect attempt failed", box.secrets())
         box.wait(2)
+
+
+def _phase1(box: Box, seen: int) -> bool:
+    _mode, stage, _associated, gen = box.snapshot()
+    return phase1_still(stage, gen, seen)
+
+
+def _drop_attempt(helper: RadioHelper) -> None:
+    try:
+        helper.delete_attempts()
+    except RadioError:
+        _log("could not drop the attempt network")
 
 
 def _morse(box: Box, strip: SocketStrip) -> None:

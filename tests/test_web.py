@@ -6,7 +6,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from starjar.bench import LOCAL_CODE, LOCAL_SID, prepare_local
 from starjar.secrets import Attempt, reset_attempt
-from starjar.web import DEBUG_BODY, SECRET_PATH, TAUNT_CODE, TAUNT_PATH, AppState, make_app
+from starjar.web import SECRET_PATH, TAUNT_CODE, TAUNT_PATH, AppState, debug_text, make_app
 from tests.conftest import writable_run_dir
 
 
@@ -36,7 +36,9 @@ async def test_debug_hides_the_code_and_secret_route_requires_it(tmp_path: Path)
         debug = await client.get("/debug")
         debug_body = await debug.text()
         assert debug.status == 200
-        assert debug_body.strip() == DEBUG_BODY
+        assert debug_body.strip() == debug_text("phase2")
+        assert "The jar is now spelling the code." in debug_body
+        assert "stage: phase2" in debug_body
         assert attempt.code not in debug_body
         assert attempt.sid not in debug_body
 
@@ -123,6 +125,19 @@ async def test_raw_dotdot_does_not_escape(tmp_path: Path):
     assert b"Traceback" not in body
     assert b"root:x:" not in body
     assert outside.read_text(encoding="utf-8").encode() not in body
+
+
+def test_debug_narrates_the_stage_and_hides_the_code():
+    attempt = Attempt("AB12CD34", "Q7K2")
+    for stage in ("idle", "phase1", "phase1-dry", "phase2", "victory", "leds", "nope"):
+        text = debug_text(stage)
+        assert attempt.sid not in text
+        assert attempt.code not in text
+        assert "stage: " in text
+    assert "The jar is now spelling the code." in debug_text("phase2")
+    assert "now spelling the code" not in debug_text("idle")
+    assert "stage: unknown" in debug_text("nope")
+    assert "nope" not in debug_text("nope")
 
 
 def test_committed_tree_names_the_list_and_the_secret_path():

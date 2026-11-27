@@ -140,7 +140,8 @@ def test_debug_page_and_jump_status_hide_the_attempt():
     for secret in secrets:
         if secret in debug or secret in status:
             raise AssertionError("a local page or jump status contains an attempt secret")
-    assert "spelling the code" in debug
+    assert "stage: idle" in debug
+    assert "now spelling the code" not in debug
     assert remote("test -d /var/lib/starjar && echo ok").strip() == "ok"
 
 

@@ -2,6 +2,7 @@
 """Walk a person through one challenge. The jar must be plugged in over USB.
 
 The jar joins an open network. This script does not create that network.
+Leaving this script stops the jar. Unplug is still the attempt reset.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SSH = ROOT / "scripts" / "starjar-ssh"
+_hunting = False
 
 
 def main() -> int:
@@ -23,12 +25,31 @@ def main() -> int:
     if not _reach():
         print("The jar is not reachable over USB. Plug it in and retry.", file=sys.stderr)
         return 1
-    if _ssh("systemctl is-active starjar.service").strip() != "active":
+    interrupted = False
+    try:
+        return _walk()
+    except KeyboardInterrupt:
+        interrupted = True
+        return 130
+    finally:
+        if _hunting:
+            idle = _stop_jar()
+            if interrupted:
+                print("\nstopped. The jar is idle." if idle else "\nstopped.", flush=True)
+            elif idle:
+                print("The jar is idle.", flush=True)
+        elif interrupted:
+            print("\nstopped", flush=True)
+
+
+def _walk() -> int:
+    global _hunting
+    if _ssh("systemctl is-active starjar.service").stdout.strip() != "active":
         print("The jar is plugged in, but the challenge is not running.", file=sys.stderr)
         print("Run make build first.", file=sys.stderr)
         return 1
 
-    sid = _ssh("cat /run/starjar/sid").strip()
+    sid = _ssh("cat /run/starjar/sid").stdout.strip()
     if not sid:
         print("The jar has no attempt yet. Unplug it, plug it back in, and retry.", file=sys.stderr)
         return 1
@@ -43,6 +64,7 @@ def main() -> int:
         if not _ask("Start the hunt now?", default_yes=True):
             print("The jar is not trying to connect.", flush=True)
             return 0
+        _hunting = True
         _ssh("rm -f /run/starjar/hold")
         warned = _ssh("/usr/local/bin/jump phase1")
         if warned.stderr.strip():
@@ -50,6 +72,8 @@ def main() -> int:
         if warned.returncode != 0:
             print("could not start the hunt", file=sys.stderr)
             return 1
+    elif status.get("stage") in {"phase1", "phase2"}:
+        _hunting = True
 
     print(flush=True)
     print("The jar is trying to connect to this open network:", flush=True)
@@ -61,17 +85,24 @@ def main() -> int:
     print("A spare router, or an access point on another computer, is the reliable way.", flush=True)
     print("This computer can host it only if that does not take down the USB shell.", flush=True)
     print(flush=True)
-    print("Waiting until the jar joins. Enter skips the wait. Ctrl-C stops.", flush=True)
+    if _hunting:
+        print("Waiting until the jar joins. Enter or Ctrl-C stops the jar.", flush=True)
+    else:
+        print("Waiting until the jar joins. Enter skips the wait. Ctrl-C stops.", flush=True)
     joined = _wait_until_joined()
     if not joined:
-        print("Stopped before the jar joined. The strip is still spelling that network name.", flush=True)
+        print("Stopped before the jar joined.", flush=True)
         return 0
 
     port = _port()
     address = _wlan_address()
     print(flush=True)
-    print("The jar joined. The strip is now spelling the phase-two code.", flush=True)
-    print("The code is not printed here.", flush=True)
+    code = _ssh("cat /run/starjar/code").stdout.strip()
+    print("The jar joined. The strip is now spelling this code:", flush=True)
+    print(flush=True)
+    print(f"    {code or '(the jar has no phase-two code)'}", flush=True)
+    print(flush=True)
+    print("That code is not on the page. /debug names the stage and does not contain it.", flush=True)
     if address:
         print(f"On the network you created, open http://{address}:{port}", flush=True)
     else:
@@ -85,8 +116,25 @@ def main() -> int:
     print("That set is /var/lib/starjar/trivia.toml on the jar. It is not in git.", flush=True)
     print("Unplugging resets the attempt. The scoreboard stays.", flush=True)
     print(flush=True)
-    input("Press enter to finish. ")
+    input("Press enter to stop the jar. ")
     return 0
+
+
+def _stop_jar() -> bool:
+    """Idle, hold, and restart. Hold keeps the next process from hunting again."""
+
+    print("Stopping the jar.", flush=True)
+    result = _ssh(
+        "touch /run/starjar/hold; "
+        "/usr/local/bin/jump idle; "
+        "sudo -n systemctl restart starjar.service",
+        timeout=45,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "could not stop the jar"
+        print(detail, file=sys.stderr)
+        return False
+    return True
 
 
 def _reach() -> bool:

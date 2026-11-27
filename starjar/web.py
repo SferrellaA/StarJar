@@ -17,7 +17,6 @@ from starjar.secrets import Attempt
 from starjar.trivia import load_trivia, render_stage3
 
 SECRET_PATH = "/debrief"
-DEBUG_BODY = "The jar is spelling the code."
 TAUNT_PATH = "Nothing in the jar by that name."
 TAUNT_CODE = "That is not what the jar is spelling."
 TEXT_SUFFIXES = {".bak", ".py", ".txt", ".toml", ".md", ".html", ".css"}
@@ -93,8 +92,27 @@ async def robots(request: web.Request) -> web.Response:
     return web.Response(text=path.read_text(encoding="utf-8"), content_type="text/plain")
 
 
-async def debug(_request: web.Request) -> web.Response:
-    return web.Response(text=DEBUG_BODY + "\n", content_type="text/plain")
+async def debug(request: web.Request) -> web.Response:
+    return web.Response(text=debug_text(_state(request).stage) + "\n", content_type="text/plain")
+
+
+def debug_text(stage: str) -> str:
+    """Stage narration. Never the SID or the code."""
+
+    lines = {
+        "idle": "Idle. The strip is dark. The hunt has not started.",
+        "phase1": "Phase one. The jar is spelling the network name, and trying to join it.",
+        "phase1-dry": (
+            "Phase one, dry. The jar is spelling the network name. "
+            "It has not left its current network."
+        ),
+        "phase2": "Phase two. The jar is now spelling the code.",
+        "victory": "Victory. The page is asking the questions. The strip is not spelling the code.",
+        "leds": "LED self-test. The strip is not spelling a code.",
+    }
+    prose = lines.get(stage, "The jar is between stages.")
+    label = stage if stage in lines else "unknown"
+    return f"{prose}\nstage: {label}"
 
 
 async def debrief_form(_request: web.Request) -> web.Response:
